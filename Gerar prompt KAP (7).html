@@ -1,0 +1,1476 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Gerar prompt KAP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: prancheta de obra — controles e tema no topo, 4 pranchas (miniatura 9:16 + combinação + campos de conteúdo), depois prompt final + histórico */
+:root{
+  --bg:#F3F6FB;
+  --surface:#FFFFFF;
+  --fg:#0F1B2D;
+  --muted:#5B6A80;
+  --line:#D8E0EC;
+  --kap-blue:#0C6CEF;
+  --kap-orange:#F97700;
+  --kap-white:#FFFFFF;
+  --chip:#EAF1FD;
+  --chip-fg:#0A4FB0;
+  --ph-a:#B9C6D8;
+  --ph-b:#A3B2C7;
+  --warn-bg:#FFF1E3;
+  --warn-fg:#9A4A00;
+  --focus:#F97700;
+  --glass:rgba(255,255,255,.55);
+  --glass-strong:rgba(255,255,255,.74);
+  --glass-edge:rgba(255,255,255,.9);
+  --glass-line:rgba(12,108,239,.14);
+  --glass-shadow:0 10px 30px rgba(15,40,90,.08);
+  --field:rgba(255,255,255,.82);
+  --blob-a:rgba(12,108,239,.16);
+  --blob-b:rgba(249,119,0,.13);
+  --logo-plate:rgba(255,255,255,.9);
+  --font-display:"Anton","Impact","Arial Narrow",sans-serif;
+  --font-body:"Manrope","Segoe UI",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--surface:#121C2E;--fg:#E8EEF7;--muted:#93A3BA;--line:#24324A;
+  --chip:#16284A;--chip-fg:#8FB8FF;--ph-a:#5D6E88;--ph-b:#4D5D76;--warn-bg:#3A2410;--warn-fg:#FFB86B;
+  --glass:rgba(20,32,54,.5);--glass-strong:rgba(20,32,54,.68);--glass-edge:rgba(255,255,255,.1);--glass-line:rgba(143,184,255,.16);
+  --glass-shadow:0 10px 30px rgba(0,0,0,.35);--field:rgba(11,18,32,.62);--blob-a:rgba(12,108,239,.3);--blob-b:rgba(249,119,0,.14);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--surface:#121C2E;--fg:#E8EEF7;--muted:#93A3BA;--line:#24324A;
+  --chip:#16284A;--chip-fg:#8FB8FF;--ph-a:#5D6E88;--ph-b:#4D5D76;--warn-bg:#3A2410;--warn-fg:#FFB86B;
+  --glass:rgba(20,32,54,.5);--glass-strong:rgba(20,32,54,.68);--glass-edge:rgba(255,255,255,.1);--glass-line:rgba(143,184,255,.16);
+  --glass-shadow:0 10px 30px rgba(0,0,0,.35);--field:rgba(11,18,32,.62);--blob-a:rgba(12,108,239,.3);--blob-b:rgba(249,119,0,.14);color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background-color:var(--bg);
+  background-image:radial-gradient(42rem 30rem at 0% 0%,var(--blob-a),transparent 70%),radial-gradient(36rem 28rem at 100% 35%,var(--blob-b),transparent 70%),radial-gradient(40rem 30rem at 20% 100%,var(--blob-a),transparent 70%);
+  background-attachment:fixed;color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--font-display);font-weight:400;letter-spacing:.01em;text-transform:uppercase;margin:0;text-wrap:balance}
+h1{font-size:clamp(34px,6vw,52px);line-height:1;color:var(--kap-blue)}
+h1 span{color:var(--kap-orange)}
+h2{font-size:22px;line-height:1.1}
+.lead{color:var(--muted);margin:8px 0 0;max-width:66ch}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* liquid glass */
+.glass,.story,.panel{background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid var(--glass-line);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-edge)}
+.story{background:var(--glass-strong)}
+header{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.brand{margin:0;display:inline-flex;padding:0;background:none;border:0}
+.brand img{display:block;width:clamp(190px,42vw,300px);height:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.toolbar{border-radius:18px;padding:16px}
+.stories-wrap{border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.sw-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:0 4px}
+.sw-head h2{font-size:24px;color:var(--kap-blue)}
+.sw-range{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.06em;color:#fff;background:var(--kap-orange);padding:4px 10px;border-radius:999px}
+
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.lbl{font-size:13px;font-weight:600;color:var(--muted)}
+.switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;color:var(--fg);font-size:14px;font-weight:600;min-height:36px}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch .track{position:relative;width:40px;height:22px;border-radius:999px;background:var(--line);transition:background .2s;flex:none}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.switch input:checked+.track{background:var(--kap-orange)}
+.switch input:checked+.track::after{transform:translateX(18px)}
+.switch input:focus-visible+.track{outline:3px solid var(--focus);outline-offset:2px}
+.ia-toggle{background:var(--chip);border-radius:8px;padding:6px 10px}
+@media (prefers-reduced-motion:reduce){.switch .track,.switch .track::after{transition:none}}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--field)}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--fg);font-weight:600;padding:10px 14px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--kap-blue);color:#fff}
+.seg button:not([aria-pressed="true"]):hover{color:var(--kap-blue)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.grow{flex:1 1 320px}
+label{font-size:13px;font-weight:600;color:var(--muted)}
+label small{font-weight:500;opacity:.85}
+select,input[type=text],.fields textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;max-width:100%;width:100%}
+select{min-width:260px;width:auto}
+.fields textarea{min-height:76px;resize:vertical;line-height:1.45}
+input.title-in{font-weight:700;text-transform:uppercase}
+button{font:inherit;font-weight:700;border-radius:8px;min-height:44px;padding:10px 18px;cursor:pointer;border:1px solid transparent}
+.btn-main{background:var(--kap-orange);color:#fff}
+.btn-main:hover{filter:brightness(1.06)}
+.btn-blue{background:var(--kap-blue);color:#fff}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--fg)}
+.btn-ghost:hover{border-color:var(--kap-blue);color:var(--kap-blue)}
+.btn-ghost.danger{border-color:var(--kap-orange);color:var(--kap-orange)}
+.btn-small{min-height:36px;padding:6px 12px;font-size:13px}
+button:disabled{opacity:.5;cursor:default;filter:none}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.da{background-color:var(--kap-blue);color:#fff;border-radius:18px;padding:20px 22px;box-shadow:var(--glass-shadow),inset 0 1px 0 rgba(255,255,255,.3);display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;
+  background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:22px 22px}
+.da .code{font-family:var(--font-mono);font-weight:600;background:var(--kap-orange);padding:2px 8px;border-radius:4px;font-size:14px}
+.da .name{font-family:var(--font-display);font-size:28px;text-transform:uppercase;line-height:1.1}
+.da .desc{flex-basis:100%;opacity:.92;max-width:70ch}
+
+.stories{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,500px),1fr));gap:16px}
+.story{border-radius:16px;padding:16px;display:grid;grid-template-columns:118px 1fr;gap:16px;min-width:0;align-content:start}
+.story-head{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.story-head h2 span{color:var(--kap-orange)}
+.head-tools{display:flex;align-items:center;gap:8px}
+.lock{min-height:36px;width:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--line);color:var(--muted);border-radius:8px}
+.lock:hover{color:var(--kap-orange);border-color:var(--kap-orange)}
+.lock[aria-pressed="true"]{background:var(--kap-orange);border-color:var(--kap-orange);color:#fff}
+.lock:not([aria-pressed="true"]) .shackle{transform:translate(4px,-1px) rotate(18deg);transform-origin:16px 11px}
+.story.locked{box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-edge),0 0 0 2px var(--kap-orange)}
+.combo{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--chip-fg);background:var(--chip);padding:3px 8px;border-radius:4px;font-variant-numeric:tabular-nums}
+.mods{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mods li{display:grid;grid-template-columns:30px 1fr;gap:8px;font-size:14px;line-height:1.35}
+.mods b{font-family:var(--font-mono);font-size:12px;color:var(--kap-orange);padding-top:1px}
+.mods .cta{grid-template-columns:1fr;color:var(--kap-orange);font-weight:700;margin-top:4px}
+.fields{grid-column:1/-1;border-top:1px dashed var(--line);padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields .full{grid-column:1/-1}
+.count{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.count.over{color:var(--kap-orange);font-weight:600}
+
+/* miniatura 9:16 */
+.wf{position:relative;width:118px;aspect-ratio:9/16;max-width:100%;border-radius:8px;overflow:hidden;align-self:start;box-shadow:0 0 0 1px var(--line)}
+.wf .ph{position:absolute;background:repeating-linear-gradient(135deg,var(--ph-a) 0 6px,var(--ph-b) 6px 12px)}
+.wf .ph.full::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(8,40,100,.75),transparent 60%)}
+.wf .box{position:absolute;display:flex;flex-direction:column;gap:2px}
+.wf .bar{height:5px;border-radius:1px}
+.wf .ln{height:2px;border-radius:1px;opacity:.85}
+.wf .safe{position:absolute;left:0;right:0;border-top:1px dashed rgba(249,119,0,.55)}
+.wf .logo{position:absolute;height:4%;width:20%;border-radius:2px}
+.wf .seal{position:absolute;width:16%;aspect-ratio:1;border-radius:50%;border:2px solid var(--kap-orange)}
+.wf .ctab{position:absolute;left:16%;width:68%;height:4.5%;border-radius:20px;background:var(--kap-orange)}
+.wf svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wf-legend{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.3}
+
+.bottom{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:16px}
+.panel{border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+#out{width:100%;min-height:380px;resize:vertical;font-family:var(--font-mono);font-size:12.5px;line-height:1.5;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.status{font-size:13px;font-weight:600;border-radius:6px;padding:6px 10px;background:var(--chip);color:var(--chip-fg)}
+.status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.hist li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.hist .meta{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.hist code{font-family:var(--font-mono);font-size:12px;overflow-wrap:anywhere;color:var(--fg)}
+.hist .recent{color:var(--kap-orange);font-weight:700}
+.empty{color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:8px;padding:14px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.cmds{border-top:1px dashed var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.cmds h3{margin:0;font-size:15px;font-weight:700}
+.cmds ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cmds li{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.cmds li div{min-width:0;flex:1 1 220px}
+.cmds code{font-family:var(--font-mono);font-size:13px;color:var(--fg);overflow-wrap:anywhere;display:block}
+.cmds small{color:var(--muted);font-size:12px}
+.roteiro{border-radius:18px;padding:0}
+.roteiro summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:16px 18px}
+.roteiro summary::-webkit-details-marker{display:none}
+.roteiro summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--kap-orange);border-bottom:2px solid var(--kap-orange);transform:rotate(-45deg);margin-right:4px;align-self:center;transition:transform .2s}
+.roteiro[open] summary::before{transform:rotate(45deg)}
+.rt-title{font-family:var(--font-display);font-size:22px;text-transform:uppercase;color:var(--kap-blue)}
+.rt-sub{font-size:13px;color:var(--muted)}
+.rt-body{padding:0 18px 18px;display:flex;flex-direction:column;gap:12px}
+#roteiro{width:100%;min-height:150px;resize:vertical;font:inherit;line-height:1.5;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:12px}
+.fit-log{margin:0;padding:10px 12px 10px 28px;border-radius:8px;background:var(--chip);color:var(--chip-fg);font-size:13px;display:flex;flex-direction:column;gap:4px}
+.fit-log li::marker{color:var(--kap-orange)}
+@media (prefers-reduced-motion:reduce){.roteiro summary::before{transition:none}}
+.tabs{display:inline-flex;align-self:flex-start;gap:4px;padding:4px;border-radius:14px}
+.tabs button{min-height:40px;padding:8px 18px;border:0;border-radius:10px;background:transparent;color:var(--fg);font-weight:700}
+.tabs button[aria-selected="true"]{background:var(--kap-blue);color:#fff}
+.tabs button:not([aria-selected="true"]):hover{color:var(--kap-blue)}
+.view{display:flex;flex-direction:column;gap:28px}
+.manual{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.man-index{position:sticky;top:calc(16px + env(safe-area-inset-top,0px));border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.man-index-title{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 8px 6px}
+.man-index button{min-height:34px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font-weight:600;font-size:14px;text-align:left}
+.man-index button:hover{background:var(--chip);color:var(--chip-fg)}
+.man-body{display:flex;flex-direction:column;gap:16px;min-width:0}
+.man-sec{border-radius:18px;padding:20px 22px;scroll-margin-top:16px;min-width:0}
+.man-sec h2{font-size:24px;color:var(--kap-blue);margin-bottom:10px}
+.man-sec h3{font-size:15px;font-weight:700;margin:18px 0 6px}
+.man-sec p,.man-sec li{max-width:72ch}
+.man-sec ul,.man-sec ol{padding-left:20px;display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.man-sec ul ul{margin-top:6px}
+.steps li::marker{color:var(--kap-orange);font-weight:700}
+.ui{display:inline-block;font-size:13px;font-weight:700;padding:1px 8px;border-radius:6px;background:var(--chip);color:var(--chip-fg);white-space:nowrap}
+.tip{border-left:3px solid var(--kap-orange);background:var(--chip);color:var(--fg);padding:10px 12px;border-radius:0 8px 8px 0;font-size:14px}
+.tbl{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+.tbl th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--field);padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.man-sec code{font-family:var(--font-mono);font-size:12.5px;background:var(--field);padding:1px 6px;border-radius:4px}
+.ex{font-family:var(--font-mono);font-size:12.5px;line-height:1.5;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;white-space:pre}
+@media (max-width:760px){.manual{grid-template-columns:1fr}.man-index{position:static;flex-direction:row;flex-wrap:wrap}.man-index-title{flex-basis:100%}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px}
+.err{color:var(--warn-fg);font-size:13px;margin:0}
+@media (max-width:520px){.fields{grid-template-columns:1fr}}
+@media (max-width:420px){.story{grid-template-columns:96px 1fr}.wf{width:96px}select{min-width:0;width:100%}.controls .field{flex:1 1 100%}}
+@media (prefers-reduced-motion:no-preference){.story{transition:box-shadow .2s}.story.flash{box-shadow:0 0 0 3px var(--kap-orange)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">KAP Edificações · stories em sequência de 4</div>
+    <h1 class="brand"><img src="data:image/webp;base64,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" alt="KAP Edificações" width="300" height="111"><span class="sr">Gerar prompt KAP</span></h1>
+    <p class="lead">Sorteie a direção de arte e as combinações, preencha os textos de cada story e copie um prompt completo, com todas as regras da KAP, para colar no ChatGPT junto com as fotos.</p>
+  </header>
+
+  <nav class="tabs glass" role="tablist" aria-label="Seções da página">
+    <button type="button" role="tab" id="tabGerador" data-view="gerador" aria-selected="true" aria-controls="viewGerador">Gerador</button>
+    <button type="button" role="tab" id="tabManual" data-view="manual" aria-selected="false" aria-controls="viewManual">Manual de uso</button>
+  </nav>
+
+  <div id="viewGerador" class="view" role="tabpanel" aria-labelledby="tabGerador">
+
+  <div class="controls glass toolbar">
+    <div class="field">
+      <label for="daSel">Direção de arte</label>
+      <select id="daSel"></select>
+    </div>
+    <button class="btn-main" id="btnSort">Sortear campanha</button>
+    <div class="field">
+      <span class="lbl" id="fmLbl">Fotos</span>
+      <div class="seg" role="group" aria-labelledby="fmLbl">
+        <button type="button" data-fm="enviar" aria-pressed="true">Vou enviar as fotos</button>
+        <button type="button" data-fm="gerar" aria-pressed="false">ChatGPT gera as fotos</button>
+        <button type="button" data-fm="misto" aria-pressed="false">Fotos enviadas + GPT</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="logoMode">Logo</label>
+      <select id="logoMode">
+        <option value="espaco">Deixar espaço vazio (coloco no Canva)</option>
+        <option value="chatgpt">ChatGPT coloca a logo do arquivo</option>
+      </select>
+    </div>
+    <div class="field grow">
+      <label for="tema">Tema geral da campanha</label>
+      <input type="text" id="tema" placeholder="Ex.: Conquista da casa própria">
+    </div>
+  </div>
+
+  <details class="roteiro glass" id="roteiroBox" open>
+    <summary><span class="rt-title">Roteiro da campanha</span><span class="rt-sub">cole o roteiro e encaixe nos 4 stories</span></summary>
+    <div class="rt-body">
+      <textarea id="roteiro" rows="8" aria-label="Roteiro da campanha" placeholder="Cole aqui o roteiro, do jeito que estiver. Exemplo:&#10;&#10;Tema: Conquista da casa própria&#10;Story 1 — Título: O SEU SONHO AGORA TEM ENDEREÇO! Texto: Toda grande conquista começa com um sonho...&#10;Story 2 — ...&#10;CTA: FALE COM A KAP E DÊ O PRIMEIRO PASSO!"></textarea>
+      <div class="row">
+        <button type="button" class="btn-main" id="btnFitIA" hidden>Encaixar e ajustar com IA</button>
+        <button type="button" class="btn-ghost" id="btnFit">Encaixar sem mudar o texto</button>
+        <button type="button" class="btn-ghost" id="btnStopFit" hidden>Parar</button>
+        <button type="button" class="btn-ghost" id="btnUndoFit" hidden>Desfazer encaixe</button>
+      </div>
+      <p class="note" id="fitStatus" aria-live="polite">O encaixe preenche título, texto, destaque, itens com ícone, CTA e tema. Fotos, ícones ligados ou desligados e o layout continuam como estão.</p>
+      <ul class="fit-log" id="fitLog" hidden></ul>
+    </div>
+  </details>
+
+  <section class="da" id="daBox" aria-live="polite"></section>
+
+  <section class="stories-wrap glass" aria-labelledby="swTitle">
+    <div class="sw-head">
+      <h2 id="swTitle">Stories da campanha</h2>
+      <span class="sw-range">STORY 01 → 04</span>
+    </div>
+    <div class="stories" id="stories"></div>
+  </section>
+
+  <section class="bottom">
+    <div class="panel">
+      <h2>Prompt para o ChatGPT</h2>
+      <p class="note">O prompt já leva todas as regras da KAP: cores, fontes com contorno branco e sombra, logo, área segura e fotos. Cole no ChatGPT na mesma mensagem em que anexar as fotos (e, se quiser, a imagem de amostra das fontes por último).</p>
+      <div class="row" style="justify-content:space-between">
+        <div class="seg" role="group" aria-label="Versão do prompt">
+          <button type="button" data-pm="completo" aria-pressed="true">Versão completa</button>
+          <button type="button" data-pm="compacto" aria-pressed="false">Versão compacta</button>
+        </div>
+        <span class="count" id="charCount" style="text-align:right"></span>
+      </div>
+      <p class="note" id="pmNote"></p>
+      <div class="status" id="status" aria-live="polite"></div>
+      <textarea id="out" readonly aria-label="Prompt pronto para copiar"></textarea>
+      <div class="row">
+        <button class="btn-blue" id="btnCopy">Copiar prompt</button>
+        <button class="btn-ghost" id="btnSave">Salvar no histórico</button>
+        <button class="btn-ghost" id="btnClear">Limpar textos</button>
+      </div>
+      <p class="note">Salve depois de usar a campanha. É o histórico que impede o sorteio de repetir combinações.</p>
+      <div class="cmds">
+        <h3>Comandos para usar no ChatGPT</h3>
+        <p class="note">O prompt já ensina esses comandos. Troque o número do story quando precisar.</p>
+        <ul id="cmdList"></ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Histórico</h2>
+      <p class="note">As 3 mais recentes (em laranja) são evitadas no sorteio. O histórico fica salvo só neste navegador.</p>
+      <ul class="hist" id="hist"></ul>
+      <div class="field">
+        <label for="imp">Adicionar código de uma campanha antiga</label>
+        <input type="text" id="imp" placeholder="DA1 | S1 A1-B3-C2-D3-E1-F1 | S2 ... | S3 ... | S4 ...">
+      </div>
+      <div class="row"><button class="btn-ghost btn-small" id="btnImp">Adicionar ao histórico</button></div>
+      <p class="err" id="impErr" hidden></p>
+    </div>
+  </section>
+  </div>
+
+  <div id="viewManual" class="view" role="tabpanel" aria-labelledby="tabManual" hidden>
+    <div class="manual">
+      <nav class="man-index glass" aria-label="Seções do manual">
+        <span class="man-index-title">Neste manual</span>
+        <button type="button" data-goto="m-inicio">1. Comece aqui</button>
+        <button type="button" data-goto="m-controles">2. Barra de controles</button>
+        <button type="button" data-goto="m-roteiro">3. Roteiro da campanha</button>
+        <button type="button" data-goto="m-direcao">4. Direção de arte</button>
+        <button type="button" data-goto="m-stories">5. Os 4 stories</button>
+        <button type="button" data-goto="m-fotos">6. Fotos de cada story</button>
+        <button type="button" data-goto="m-icones">7. Ícones</button>
+        <button type="button" data-goto="m-prompt">8. Prompt para o ChatGPT</button>
+        <button type="button" data-goto="m-chatgpt">9. Usando no ChatGPT</button>
+        <button type="button" data-goto="m-historico">10. Histórico</button>
+        <button type="button" data-goto="m-problemas">11. Problemas comuns</button>
+      </nav>
+
+      <div class="man-body">
+        <section class="man-sec glass" id="m-inicio">
+          <h2>1. Comece aqui</h2>
+          <p>O <b>Gerar prompt KAP</b> monta, em poucos minutos, o prompt de uma campanha de 4 stories da KAP Edificações. Você cola no ChatGPT e ele gera as imagens seguindo a identidade da marca. O caminho completo é este:</p>
+          <ol class="steps">
+            <li><b>Sorteie a campanha.</b> Clique em <span class="ui">Sortear campanha</span>. A página escolhe a direção de arte e o layout de cada story.</li>
+            <li><b>Coloque o conteúdo.</b> Cole o roteiro em <span class="ui">Roteiro da campanha</span> e clique em encaixar, ou preencha os campos de cada story à mão.</li>
+            <li><b>Ajuste o que quiser.</b> Trave os stories de que gostou, troque os outros, escolha as fotos e ligue ou desligue os ícones.</li>
+            <li><b>Copie o prompt.</b> Clique em <span class="ui">Copiar prompt</span>.</li>
+            <li><b>Gere no ChatGPT.</b> Abra uma conversa nova, anexe as fotos, cole o prompt, aprove a tabela e peça um story por vez.</li>
+            <li><b>Salve no histórico.</b> Volte aqui e clique em <span class="ui">Salvar no histórico</span> para a próxima campanha não repetir layouts.</li>
+          </ol>
+          <p class="tip">Tudo o que você digita fica salvo neste navegador. Pode fechar a página e voltar depois.</p>
+        </section>
+
+        <section class="man-sec glass" id="m-controles">
+          <h2>2. Barra de controles</h2>
+          <p>É a faixa de vidro no topo da aba <span class="ui">Gerador</span>. Ela decide o estilo geral da campanha.</p>
+          <div class="tbl"><table>
+            <thead><tr><th>Controle</th><th>O que faz</th><th>Quando usar</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ui">Direção de arte</span></td><td>Escolhe o estilo visual da campanha. As opções de Surpresa sorteiam uma direção que não foi usada nas 3 últimas campanhas salvas.</td><td>Deixe em <b>Surpresa</b> para variar sempre. Use <b>Surpresa só com foto inteira</b> quando quiser a foto em destaque. Escolha uma direção específica quando o tema pedir, por exemplo <i>Álbum de memórias</i> para entrega de chaves.</td></tr>
+              <tr><td><span class="ui">Sortear campanha</span></td><td>Sorteia a direção de arte e o layout dos 4 stories, sem repetir peças entre eles. Stories com cadeado fechado não mudam.</td><td>Sempre que começar uma campanha ou quiser outras opções.</td></tr>
+              <tr><td><span class="ui">Fotos</span></td><td><b>Vou enviar as fotos:</b> você anexa as fotos no ChatGPT. <b>ChatGPT gera as fotos:</b> ele cria todas. <b>Fotos enviadas + GPT:</b> mistura as duas coisas, story por story.</td><td>Veja a seção 6 para o detalhe de cada modo.</td></tr>
+              <tr><td><span class="ui">Logo</span></td><td><b>Deixar espaço vazio:</b> o ChatGPT só reserva o lugar da logo. <b>ChatGPT coloca a logo do arquivo:</b> ele tenta desenhar a logo.</td><td>Recomendado: espaço vazio, e você coloca a logo original no Canva. O ChatGPT costuma alterar um pouco a logo quando tenta desenhar.</td></tr>
+              <tr><td><span class="ui">Tema geral da campanha</span></td><td>Uma linha que explica o assunto da campanha para o ChatGPT.</td><td>Opcional, mas ajuda. Exemplo: <i>Conquista da casa própria</i>.</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="man-sec glass" id="m-roteiro">
+          <h2>3. Roteiro da campanha</h2>
+          <p>Cole o roteiro inteiro e deixe a página distribuir o texto nos 4 stories. O painel abre e fecha clicando no título.</p>
+          <div class="tbl"><table>
+            <thead><tr><th>Botão</th><th>O que acontece</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ui">Encaixar e ajustar com IA</span></td><td>A IA lê o roteiro e preenche título, texto, destaque, itens com ícone, CTA e tema. Ela deixa títulos em caixa alta, encurta textos com mais de 25 palavras e corrige acentos. Ela não inventa promessas, números ou condições. No fim aparece a lista do que foi mudado. Usa a sua conta do Claude e pede autorização no primeiro uso.</td></tr>
+              <tr><td><span class="ui">Encaixar sem mudar o texto</span></td><td>Distribui o roteiro exatamente como está. Só passa os títulos para caixa alta.</td></tr>
+              <tr><td><span class="ui">Parar</span></td><td>Aparece enquanto a IA trabalha. Interrompe sem alterar nada.</td></tr>
+              <tr><td><span class="ui">Desfazer encaixe</span></td><td>Volta todos os textos para como estavam antes do encaixe.</td></tr>
+            </tbody>
+          </table></div>
+          <h3>Formatos de roteiro que funcionam</h3>
+          <p>Com rótulos, que é o formato mais preciso:</p>
+          <pre class="ex">Tema: Conquista da casa própria
+Story 1 — Gancho
+Título: O SEU SONHO AGORA TEM ENDEREÇO!
+Texto: Toda grande conquista começa com um sonho.
+Story 2 — Desenvolvimento
+...
+CTA: FALE COM A KAP E DÊ O PRIMEIRO PASSO!</pre>
+          <p>Ou em blocos simples, separados por uma linha em branco. A 1ª linha de cada bloco vira o título, o resto vira o texto, e linhas com <b>-</b> ou <b>•</b> viram itens com ícone:</p>
+          <pre class="ex">Do sonho à conquista!
+A KAP te ajuda em cada etapa.
+- Orientação
+- Documentação</pre>
+          <p class="tip">O encaixe nunca mexe nas fotos, nos ícones ligados ou desligados nem no layout. Depois de encaixar, revise cada story antes de copiar o prompt.</p>
+        </section>
+
+        <section class="man-sec glass" id="m-direcao">
+          <h2>4. Direção de arte</h2>
+          <p>A faixa azul mostra a direção sorteada: código (ex.: <b>DA21</b>), nome e descrição. Ela é o conceito que une os 4 stories. São 55 direções no total.</p>
+          <ul>
+            <li><b>Selo "Foto inteira":</b> aparece nas direções em que a foto ocupa a tela toda nos 4 stories, sem fundo chapado.</li>
+            <li><b>Direções gráficas:</b> misturam foto com blocos de cor, formas e grafismos. Até 2 stories por campanha podem sair com foto inteira.</li>
+          </ul>
+        </section>
+
+        <section class="man-sec glass" id="m-stories">
+          <h2>5. Os 4 stories</h2>
+          <p>Cada quadrado é um story: 01 gancho, 02 desenvolvimento, 03 aprofundamento e 04 fechamento com CTA.</p>
+          <h3>Rascunho</h3>
+          <p>A miniatura mostra a composição aproximada: onde ficam foto, texto, ícones e logo. As linhas tracejadas laranja marcam a área segura do Instagram. O rascunho é só uma prévia para você decidir. Ele não vai para o ChatGPT.</p>
+          <h3>Código do layout</h3>
+          <p>Cada story tem um código como <b>A3-B7-C4-D1-E1-F2-G1</b>. Cada letra é uma parte do layout:</p>
+          <div class="tbl"><table>
+            <thead><tr><th>Letra</th><th>Define</th><th>Exemplo</th></tr></thead>
+            <tbody>
+              <tr><td><b>A</b></td><td>Tratamento da foto</td><td>A3 = foto recortada em formato de casa</td></tr>
+              <tr><td><b>B</b></td><td>Posição do texto</td><td>B7 = título no topo, texto na base</td></tr>
+              <tr><td><b>C</b></td><td>Estilo do título</td><td>C9 = linhas alternando azul e laranja</td></tr>
+              <tr><td><b>D</b></td><td>Fundo</td><td>D3 = a própria foto</td></tr>
+              <tr><td><b>E</b></td><td>Grafismo</td><td>E10 = quadriculados nos cantos</td></tr>
+              <tr><td><b>F</b></td><td>Posição da logo</td><td>F4 = base centro</td></tr>
+              <tr><td><b>G</b></td><td>Formato dos ícones</td><td>G2 = lista em cartões com ícone</td></tr>
+            </tbody>
+          </table></div>
+          <h3>Botões do story</h3>
+          <ul>
+            <li><b>Cadeado:</b> trava o story. No próximo <span class="ui">Sortear campanha</span>, ele continua igual e só os outros mudam. Com algum story travado em modo Surpresa, a direção de arte também é mantida. Clique de novo para destravar.</li>
+            <li><span class="ui">Trocar este story</span>: sorteia outro layout só para aquele story. Fica desativado enquanto o story estiver travado.</li>
+          </ul>
+          <h3>Campos de texto</h3>
+          <div class="tbl"><table>
+            <thead><tr><th>Campo</th><th>Para que serve</th><th>Dica</th></tr></thead>
+            <tbody>
+              <tr><td>Título</td><td>Frase principal, na fonte Anton, em caixa alta.</td><td>Curto e forte, até umas 8 palavras.</td></tr>
+              <tr><td>Texto de apoio</td><td>Frase de apoio, na fonte Satoshi.</td><td>Até 25 palavras. O contador fica laranja quando passa disso, porque texto longo aumenta erro de escrita na imagem.</td></tr>
+              <tr><td>Destaque em Amertha</td><td>1 ou 2 palavras do título na fonte de pincel.</td><td>Vazio = o ChatGPT escolhe.</td></tr>
+              <tr><td>Itens com ícone</td><td>Lista curta, um item por linha, cada um com seu ícone.</td><td>Vazio = os ícones acompanham o texto de apoio.</td></tr>
+              <tr><td>Botão CTA</td><td>Só no story 4. Texto do botão laranja.</td><td>Ação clara: <i>FALE COM A KAP</i>.</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="man-sec glass" id="m-fotos">
+          <h2>6. Fotos de cada story</h2>
+          <p>O que aparece em cada story depende da opção escolhida em <span class="ui">Fotos</span> na barra de controles.</p>
+          <h3>Vou enviar as fotos</h3>
+          <ul>
+            <li><b>Fotos deste story:</b> escreva o número da foto, como <i>2</i>. Os números seguem a ordem em que você anexa as fotos no ChatGPT. Vazio = o ChatGPT escolhe uma que sobrou.</li>
+            <li><b>Mais de uma foto no mesmo story:</b> escreva <i>2 e 3</i> e escolha em <span class="ui">Como juntar as fotos</span>:
+              <ul>
+                <li><b>Pessoa na frente, outra foto ao fundo:</b> o 1º número é a pessoa (por exemplo, segurando a chave) e o 2º é o fundo (por exemplo, a frente da casa).</li>
+                <li><b>Foto principal + foto menor sobreposta.</b></li>
+                <li><b>Duas fotos dividindo a tela.</b></li>
+              </ul></li>
+            <li>Se a mesma foto aparecer em dois stories, a página avisa acima do prompt.</li>
+          </ul>
+          <h3>ChatGPT gera as fotos</h3>
+          <p>Cada story ganha o campo <b>Foto que o ChatGPT vai gerar</b>. Descreva a cena, por exemplo <i>casal sorrindo com a chave em frente à casa nova</i>. Vazio = ele cria uma cena que combine com o texto. O prompt pede fotos com cara de foto real e as mesmas pessoas e casa entre os stories.</p>
+          <h3>Fotos enviadas + GPT</h3>
+          <ul>
+            <li><b>Chave "Só foto de IA neste story" desligada:</b> o story usa a sua foto. No campo <b>O que o ChatGPT deve gerar junto</b> você pede um acréscimo, como <i>confetes caindo e um laço na porta</i>.</li>
+            <li><b>Chave ligada:</b> o story usa só foto gerada, e o campo vira a descrição da foto.</li>
+          </ul>
+        </section>
+
+        <section class="man-sec glass" id="m-icones">
+          <h2>7. Ícones</h2>
+          <ul>
+            <li><b>Chave "Ícones neste story":</b> vem ligada. Desligue nos stories que devem ficar limpos, só com foto e texto.</li>
+            <li><b>Quem desenha os ícones:</b> o próprio ChatGPT, a partir do conteúdo de cada story. A página só sorteia o formato (pílula, lista, cartões, 3D etc.).</li>
+            <li><b>Conferência antes de gerar:</b> a tabela do ChatGPT tem a coluna <i>Ícones que você vai criar</i>. Se não gostar de algum, peça para trocar antes de gerar.</li>
+            <li><b>Itens com ícone:</b> escreva um item por linha. Se ficar vazio num layout de lista, o ChatGPT divide o texto de apoio em partes, sem mudar palavras.</li>
+          </ul>
+        </section>
+
+        <section class="man-sec glass" id="m-prompt">
+          <h2>8. Prompt para o ChatGPT</h2>
+          <ul>
+            <li><b>Versão completa:</b> todas as regras explicadas em detalhe. Use na primeira campanha ou quando quiser máximo controle.</li>
+            <li><b>Versão compacta:</b> as mesmas regras em poucas linhas, com cerca de metade do tamanho. Use se o ChatGPT começar a ignorar alguma regra ou em conversas longas. O contador ao lado mostra o tamanho das duas versões.</li>
+            <li><b>Aviso acima do prompt:</b> fica azul com <i>Prompt completo, pronto para copiar</i> quando está tudo certo. Fica laranja quando falta algum campo (aparece como [PREENCHER] no prompt), quando um texto passa de 25 palavras ou quando uma foto se repete.</li>
+            <li><span class="ui">Copiar prompt</span>: copia o texto inteiro.</li>
+            <li><span class="ui">Salvar no histórico</span>: registra a campanha para os próximos sorteios não repetirem layouts.</li>
+            <li><span class="ui">Limpar textos</span>: apaga títulos, textos e itens para começar outra campanha. Pede confirmação. O roteiro e as configurações continuam.</li>
+          </ul>
+          <p class="tip">O prompt já leva todas as regras da KAP: cores, fontes com contorno branco e sombra, texto sempre na horizontal, sem numeração de páginas, logo, área segura, fotos, ícones e composição limpa. Ele funciona em qualquer conversa, sem precisar configurar o projeto do ChatGPT.</p>
+        </section>
+
+        <section class="man-sec glass" id="m-chatgpt">
+          <h2>9. Usando no ChatGPT</h2>
+          <ol class="steps">
+            <li>Abra uma <b>conversa nova</b>. Use uma conversa por campanha.</li>
+            <li>Anexe as fotos <b>na mesma ordem dos números</b> que você usou na página. Se quiser, anexe por último a imagem de amostra das fontes.</li>
+            <li>Na mesma mensagem, cole o prompt e envie.</li>
+            <li>O ChatGPT devolve uma <b>tabela</b> sem gerar imagem. Confira fotos, layouts, ícones e palavra em Amertha.</li>
+            <li>Aprove e peça um story por vez, com os comandos abaixo.</li>
+            <li>Baixe cada imagem assim que ficar boa. Se usou o espaço vazio para a logo, coloque a logo original no Canva.</li>
+          </ol>
+          <div class="tbl"><table>
+            <thead><tr><th>Comando</th><th>O que faz</th></tr></thead>
+            <tbody>
+              <tr><td><code>Aprovado. Gerar story 1.</code></td><td>Aprova a tabela e gera o primeiro story.</td></tr>
+              <tr><td><code>Gerar story 2.</code></td><td>Gera o próximo, mantendo o estilo do anterior.</td></tr>
+              <tr><td><code>Refazer story 2</code></td><td>Gera uma versão nova, com os mesmos textos e fotos e outro arranjo.</td></tr>
+              <tr><td><code>Refazer story 2: deixe o título maior</code></td><td>Mantém tudo e muda só o ajuste pedido.</td></tr>
+            </tbody>
+          </table></div>
+          <p class="tip">A caixa <b>Comandos para usar no ChatGPT</b>, embaixo do prompt, tem esses comandos com botão de copiar.</p>
+        </section>
+
+        <section class="man-sec glass" id="m-historico">
+          <h2>10. Histórico</h2>
+          <ul>
+            <li>As <b>3 campanhas mais recentes</b> aparecem em laranja como <i>Evitada</i>. O sorteio foge da direção de arte e das combinações delas.</li>
+            <li><span class="ui">Remover</span> tira uma campanha do histórico.</li>
+            <li>O histórico fica salvo <b>só neste navegador</b>. Para levar a outro computador, copie a linha de código de cada campanha e cole em <span class="ui">Adicionar código de uma campanha antiga</span>.</li>
+          </ul>
+        </section>
+
+        <section class="man-sec glass" id="m-problemas">
+          <h2>11. Problemas comuns</h2>
+          <div class="tbl"><table>
+            <thead><tr><th>Problema</th><th>Solução</th></tr></thead>
+            <tbody>
+              <tr><td>A logo saiu diferente</td><td>Use <b>Logo: Deixar espaço vazio</b> e coloque a logo original no Canva.</td></tr>
+              <tr><td>Texto com erro ou acento faltando</td><td><code>Refazer story X: corrija o texto para "..."</code>. Textos curtos erram menos.</td></tr>
+              <tr><td>Ícone ou texto em cima da pessoa</td><td><code>Refazer story X: tire os elementos de cima das pessoas</code>.</td></tr>
+              <tr><td>Dois stories ficaram parecidos</td><td>Na página, clique em <span class="ui">Trocar este story</span> e use o novo layout. No ChatGPT, peça <code>Refazer story X</code>.</td></tr>
+              <tr><td>O ChatGPT está ignorando regras</td><td>Comece uma conversa nova e use a <b>Versão compacta</b> do prompt.</td></tr>
+              <tr><td>O botão "Encaixar e ajustar com IA" não aparece</td><td>Ele só funciona com a página aberta dentro do Claude. Use <span class="ui">Encaixar sem mudar o texto</span>.</td></tr>
+              <tr><td>O histórico sumiu</td><td>Ele fica no navegador. Em outro aparelho, importe os códigos pelo campo do histórico.</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const DAS = {
+  DA1:["Planta baixa","Fundo azul com linhas finas brancas de planta arquitetônica, cotas de medida e grid de engenharia."],
+  DA2:["Editorial de revista","Muito respiro branco, títulos enormes, fotos com recortes elegantes, numeração grande."],
+  DA3:["Álbum de memórias","Fotos em molduras tipo polaroid, leve inclinação, fita adesiva, sensação afetiva."],
+  DA4:["Cartaz bold","Blocos de cor chapados, títulos gigantes ocupando a largura, contraste forte azul e laranja."],
+  DA5:["Clean minimalista","Poucos elementos, muito branco, linhas finas laranja, foto como protagonista."],
+  DA6:["Placa de obra","Tarjas e faixas retas, selos e carimbos, setas, linguagem de sinalização sem parecer amador."],
+  DA7:["Arquitetura e formas","Fotos dentro de formas geométricas (arco, casa, círculo, janela), composição modular."],
+  DA8:["Colagem moderna","Foto principal mais recorte de detalhe da mesma foto, camadas sobrepostas, profundidade."],
+  DA9:["Tipografia gigante","O título é o protagonista e ocupa boa parte da tela. A foto aparece menor ou recortada dentro/atrás das letras."],
+  DA10:["Concreto e textura","Fundos com textura suave de concreto ou cimento queimado em tom claro, com azul e laranja só nos destaques. Sensação de obra bem-acabada."],
+  DA11:["Prancha técnica","Estética de projeto arquitetônico: carimbo de prancha no canto (tabela com campos), números de referência, legendas e linhas técnicas finas."],
+  DA12:["Portas e janelas","A foto é vista através de aberturas: molduras de porta, janela ou portão desenhadas em traço ou bloco de cor."],
+  DA13:["Geométrico modernista","Formas geométricas chapadas inspiradas em azulejaria modernista brasileira, em azul, laranja e branco, compondo bordas e fundos."],
+  DA14:["Premium discreto","Azul bem profundo como base, muito espaço vazio, linhas finas laranja, poucos elementos e acabamento sofisticado de alto padrão."],
+  DA15:["Grid modular","Tela dividida em módulos retangulares tipo mosaico: blocos de foto, blocos de cor e blocos de texto encaixados com espaçamento igual."],
+  DA16:["Movimento e avanço","Diagonais fortes, elementos inclinados e setas de progresso dando sensação de avanço e conquista a cada story."],
+  DA17:["Jornada em trilha","Uma linha tracejada laranja funciona como caminho que atravessa os 4 stories, com pontos marcando cada etapa da história."],
+  DA18:["Papel recortado","Fotos e blocos com bordas de papel recortado ou rasgado, camadas com sombra leve, como uma maquete de papel."],
+  DA19:["Mapa e endereço","Elementos de mapa: ruas em linhas finas, pin de localização, quadras e lotes. Reforça a ideia de endereço e lugar."],
+  DA20:["Luz de fim de tarde","Clima acolhedor: brilhos e gradientes quentes suaves nos elementos gráficos, com laranja mais presente. As fotos ficam naturais, sem filtro forte."],
+  DA21:["Foto protagonista","Foto inteira em todos os stories, sem fundo chapado. Só um degradê sutil onde fica o texto e o mínimo de elementos gráficos.",true],
+  DA22:["Capa de revista","Cada story parece uma capa: foto inteira, título grande no topo (pode passar atrás da pessoa ou da casa) e chamadas pequenas.",true],
+  DA23:["Cinematográfico","Foto inteira com enquadramento de cinema, título grande e texto curto como legenda de filme, clima de cena.",true],
+  DA24:["Tarjas sobre a foto","Foto inteira; os textos ficam em tarjas e etiquetas azuis e laranja só atrás das palavras, sem cobrir a foto.",true],
+  DA25:["Moldura fina","Foto inteira com uma moldura interna branca fina (passe-partout) a poucos milímetros da borda; texto dentro da moldura.",true],
+  DA26:["Momentos reais","Fotos inteiras com aparência espontânea e documental, textos pequenos e discretos, destaque em Amertha maior.",true],
+  DA27:["Vitrine da casa","A casa é a estrela: foto inteira bem enquadrada, textos concentrados num canto, grafismos finos de arquitetura (cotas, telhado).",true],
+  DA28:["Efeito 3D","Foto inteira em que a pessoa ou a casa parece sair de uma moldura ou forma, criando profundidade. Textos limpos ao redor.",true],
+  DA29:["Faixa panorâmica","Foto inteira atravessada por uma faixa horizontal translúcida azul onde fica o texto, como uma janela de leitura.",true],
+  DA30:["Marcas à mão","Foto inteira com setas, círculos e sublinhados desenhados à mão em laranja apontando detalhes (sem texto extra).",true],
+  DA31:["Detalhes de perto","Foto inteira com enquadramento próximo (chave, porta, mãos, fachada), títulos curtos e grandes, muito impacto.",true],
+  DA32:["Fim de dia acolhedor","Foto inteira com bordas levemente escurecidas e textos brancos com detalhes laranja, clima de casa iluminada. A foto em si não muda.",true],
+  DA33:["Assinatura na base","Foto inteira limpa, com uma faixa azul fina na base que concentra título, texto e o espaço da logo, como assinatura.",true],
+  DA34:["Lupa no detalhe","Foto inteira com um círculo de zoom ampliando um detalhe da própria foto (a chave, a porta), ligado por uma linha fina.",true],
+  DA35:["Cartão-postal","Foto inteira com borda branca de cartão-postal, selo e carimbo gráficos sem texto, título como dedicatória.",true],
+  DA36:["Bauhaus","Formas básicas (círculo, quadrado, triângulo) em azul e laranja compondo a tela de forma equilibrada, com a foto encaixada numa delas."],
+  DA37:["Estrutura e tijolo","Padrões sutis de tijolos e blocos e linhas de vigas como grafismo, lembrando a obra por trás da casa pronta."],
+  DA38:["Etapas concluídas","Elementos de checklist (caixas marcadas com visto), etiquetas e barras de progresso gráficas, sem texto extra."],
+  DA39:["Gradiente fluido","Fundos com gradiente suave de azul escuro para azul claro, formas orgânicas arredondadas e laranja só nos destaques."],
+  DA40:["Cartões empilhados","Foto e textos em cartões sobrepostos com leve rotação e sombra suave, como uma pilha organizada."],
+  DA41:["Linha contínua","Um único traço fino laranja desenha a silhueta de uma casa e conecta a foto ao texto."],
+  DA42:["Tela dividida","Metade foto, metade cor sólida, alternando o lado (esquerda, direita, cima, baixo) a cada story."],
+  DA43:["Mural de inspiração","Composição tipo moodboard: foto, amostras de cor azul e laranja e recortes organizados em grade sobre fundo claro."],
+  DA44:["Papel milimetrado","Fundo branco com quadriculado azul claro de papel milimetrado, linhas de medida e foto presa com fita."],
+  DA45:["Luz e sombra","Sombras suaves de janela ou persiana projetadas sobre o fundo e os blocos, clima elegante de arquitetura."],
+  DA46:["Céu aberto","Foto inteira com bastante céu no topo, onde entram títulos enormes; pessoas e casa ocupam a metade de baixo.",true],
+  DA47:["Conquista em primeiro plano","Foto inteira com pessoas bem perto da câmera (mostrando a chave, sorrindo), casa ao fundo, títulos grandes acima delas.",true],
+  DA48:["Recorte com contorno","Foto inteira levemente desfocada ao fundo e a pessoa ou a casa recortada nítida por cima, com contorno branco de adesivo.",true],
+  DA49:["Vidro sobre a foto","Foto inteira com cartões de vidro translúcido (efeito liquid glass) para títulos, textos e ícones.",true],
+  DA50:["Ficha do imóvel","Foto inteira da casa com uma ficha elegante de características em ícones (quartos, garagem, quintal) usando só os textos fornecidos.",true],
+  DA51:["Pop vibrante","Energia de campanha: títulos enormes em azul e laranja, riscos de destaque, pílulas e selos, blocos quadriculados nos cantos."],
+  DA52:["Retrô anos 70","Faixas curvas e arredondadas em azul e laranja, cantos bem redondos, clima nostálgico e alegre."],
+  DA53:["Blocos de montar","Peças retangulares coloridas que se encaixam como blocos de construção, formando a moldura da foto e do texto."],
+  DA54:["Selos de confiança","Selos circulares, carimbos gráficos e fitas que transmitem segurança e garantia, sem texto extra."],
+  DA55:["Dobraduras","Faixas e cartões com aparência de papel dobrado, com vincos e sombras suaves, dando volume."]
+};
+const isPhotoDA = da => !!(DAS[da] && DAS[da][2]);
+const MODS = {
+  A:{nome:"Foto",o:{A1:"tela cheia com degradê azul sutil",A2:"cartão arredondado inclinado",A3:"recorte em formato de casa",A4:"faixa horizontal no meio da tela",A5:"metade vertical (esquerda ou direita)",A6:"dentro de arco/janela arquitetônica",A7:"círculo grande parcialmente fora da tela",A8:"foto + ampliação de um detalhe dela em um segundo quadro",A9:"pessoa/casa à frente do título (título passa atrás do elemento principal)",A10:"moldura polaroid",A11:"foto inteira com tarja de cor só atrás do texto",A12:"foto inteira com moldura branca fina interna",A13:"foto inteira com degradê azul suave vindo de uma lateral",A14:"foto inteira com o texto num cartão azul translúcido",A15:"foto inteira com a pessoa ou a casa saindo da moldura (efeito 3D)",A16:"janela grande de cantos arredondados, quase tela cheia",A17:"três faixas verticais da mesma foto, com espaço entre elas",A18:"foto no topo com a base cortada em diagonal",A19:"foto subindo da base em cartão com cantos superiores arredondados",A20:"foto inteira com moldura grossa de cor (azul ou laranja)",A21:"foto inteira desfocada ao fundo + a mesma foto nítida num cartão",A22:"foto numa faixa inclinada atravessando a tela"}},
+  B:{nome:"Texto",o:{B1:"bloco de texto no topo",B2:"bloco de texto no centro",B3:"bloco de texto na base",B4:"coluna à esquerda",B5:"coluna à direita",B6:"sobre faixa diagonal",B7:"dividido: título no topo, texto na base",B8:"texto num cartão branco flutuante",B9:"título e texto em dois cartões separados",B10:"título no topo à esquerda e texto em coluna à direita embaixo",B11:"texto sobre faixa horizontal sólida",B12:"texto numa aba de cor colada na borda esquerda"}},
+  C:{nome:"Título",o:{C1:"empilhado, uma palavra por linha",C2:"linha gigante ocupando a largura",C3:"palavra-chave em laranja",C4:"palavra vazada (só contorno)",C5:"dentro de tarja azul ou laranja",C6:"título alinhado à esquerda com sublinhado laranja grosso",C7:"título curto enorme + resto pequeno",C8:"marca-texto laranja atrás de uma palavra",C9:"título em duas cores: linhas alternando azul e laranja",C10:"palavra-chave dividida em duas cores (metade azul, metade laranja)",C11:"sublinhado de pincel laranja com riscos de destaque em volta"}},
+  D:{nome:"Fundo",o:{D1:"azul chapado",D2:"branco",D3:"a própria foto",D4:"azul com textura sutil de planta/grid",D5:"dividido azul e branco",D6:"degradê de azul escuro para azul claro",D7:"branco com textura sutil de concreto claro"}},
+  E:{nome:"Grafismo",o:{E1:"cotas de medida (linhas com setas nas pontas)",E2:"traço de telhado \"^\"",E3:"setas",E4:"grid de engenharia",E5:"selo/carimbo circular",E6:"linha laranja fina contínua que passa de um story para o outro",E7:"marcadores de canto (cantoneiras)",E8:"ícone de chave em traço fino",E9:"trilha tracejada com pontos",E10:"blocos quadriculados azul e laranja nos cantos",E11:"riscos de destaque em volta do título",E12:"feixe de linhas diagonais finas num canto"}},
+  F:{nome:"Logo",o:{F1:"topo centro",F2:"topo esquerda",F3:"base direita",F4:"base centro",F5:"dentro de selo",F6:"topo direita",F7:"base esquerda"}},
+  G:{nome:"Ícones",o:{
+    G1:"pílula branca com ícone em traço laranja à esquerda, separado por uma linha fina, e o texto ao lado",
+    G2:"lista vertical de 2 a 4 itens, cada um num cartão branco com ícone laranja dentro de um quadrado arredondado e o texto ao lado",
+    G3:"2 ou 3 cartões brancos lado a lado, com ícone em traço laranja em cima e o texto embaixo",
+    G4:"ícone 3D suave e colorido (ex.: casinha, chave) encostado na faixa de texto, como um selo",
+    G5:"ícone grande em traço laranja ao lado do título, com riscos de destaque em volta",
+    G6:"selos circulares pequenos com ícone, espalhados junto ao texto de apoio",
+    G7:"faixa com 3 ícones em linha, cada um com uma palavra curta embaixo",
+    G8:"ícone dentro de um balão de fala ao lado do texto"}}
+};
+const KEYS = ["A","B","C","D","E","F","G"];
+const LISTA_ICONES = ["G2","G3","G6","G7"];
+const PAPEIS = ["Gancho","Desenvolvimento","Aprofundamento","Fechamento com CTA"];
+const FULL = ["A1","A9","A11","A12","A13","A14","A15","A20","A21"];
+const STORE = "kap-sorteador-v1";
+const TEXT_LIMIT = 25; /* palavras: acima disso o ChatGPT erra mais o texto */
+
+const EXEMPLO = {
+  tema:"Conquista da casa própria — O SEU SONHO AGORA TEM ENDEREÇO!",
+  s:[
+    {titulo:"O SEU SONHO AGORA TEM ENDEREÇO!",destaque:"sonho",texto:"Toda grande conquista começa com um sonho. E o de ter um lar para chamar de seu é um dos mais especiais."},
+    {titulo:"MAIS QUE UMA CASA. UMA NOVA HISTÓRIA!",destaque:"nova história",texto:"Cada chave entregue representa um novo começo, cheio de planos, felicidade e momentos para viver."},
+    {titulo:"A FELICIDADE DE CONQUISTAR O QUE É SEU!",destaque:"felicidade",texto:"Sair do aluguel, abrir a porta da própria casa e sentir que todo esforço valeu a pena. Não tem preço!"},
+    {titulo:"O PRÓXIMO SONHO REALIZADO PODE SER O SEU!",destaque:"o seu",texto:"A KAP Edificações está pronta para ajudar você a transformar o sonho da casa própria em realidade."}
+  ],
+  cta:"FALE COM A KAP E DÊ O PRIMEIRO PASSO!"
+};
+const VAZIO = () => ({tema:"",s:[0,1,2,3].map(()=>({titulo:"",destaque:"",texto:"",fotos:"",juntar:"camadas",cena:"",itens:"",icones:true})),cta:""});
+const icOn = i => !content || content.s[i].icones !== false;
+const icRegra = () => {
+  const off = [0,1,2,3].filter(i=>!icOn(i)).map(i=>i+1);
+  if(off.length===4) return {todos:false, nenhum:true, txt:""};
+  return {todos:!off.length, nenhum:false, txt: off.length ? "Story "+off.join(", ")+(off.length>1?" não levam":" não leva")+" ícone" : ""};
+};
+const gerando = () => content && content.fotoModo==="gerar";
+const misto = () => content && content.fotoModo==="misto";
+const storyIA = i => gerando() || (misto() && !!content.s[i].soIA);
+
+let state = { da:null, stories:[], saved:false };
+let content = null;
+let history = [];
+
+function load(){
+  try{ const raw = localStorage.getItem(STORE); if(raw){ const d = JSON.parse(raw);
+    history = Array.isArray(d.history)?d.history:[];
+    if(d.state&&d.state.stories&&d.state.stories.length===4) state = d.state;
+    if(d.content&&Array.isArray(d.content.s)&&d.content.s.length===4) content = d.content; } }catch(e){}
+  if(!content) content = JSON.parse(JSON.stringify(EXEMPLO));
+  if(!content.logoMode) content.logoMode = "espaco";
+  content.s.forEach(s=>{ if(s.fotos==null) s.fotos=""; if(!s.juntar) s.juntar="camadas"; if(s.cena==null) s.cena=""; if(s.itens==null) s.itens=""; if(s.icones==null) s.icones=true; });
+  /* campanhas salvas antes dos ícones: completa o módulo G sem repetir */
+  if(state.stories && state.stories.length===4 && state.stories.some(c=>!c.G)){
+    const livres = Object.keys(MODS.G.o).sort(()=>Math.random()-.5);
+    state.stories.forEach(c=>{ if(!c.G) c.G = livres.find(g=>!state.stories.some(o=>o.G===g)); });
+  }
+  if(!content.fotoModo) content.fotoModo = "enviar";
+}
+
+/* ---------- fotos por story ---------- */
+const JUNTAR = {
+  camadas:"Pessoa na frente, outra foto ao fundo",
+  destaque:"Foto principal + foto menor sobreposta",
+  dividida:"Duas fotos dividindo a tela"
+};
+const nums = s => [...new Set((String(s||"").match(/\d+/g)||[]).map(Number).filter(n=>n>0))];
+function fotosTxt(s){
+  const n = nums(s.fotos);
+  if(!n.length) return null;
+  if(n.length===1) return "Foto "+n[0]+".";
+  const [a,b,...r] = n;
+  const extra = r.length ? " Use também "+r.map(x=>"a Foto "+x).join(", ")+" em quadros menores." : "";
+  if(s.juntar==="destaque") return "juntar Foto "+a+" e Foto "+b+" no mesmo story: Foto "+a+" como foto principal e Foto "+b+" menor, sobreposta num quadro com borda branca fina e sombra suave."+extra;
+  if(s.juntar==="dividida") return "juntar Foto "+a+" e Foto "+b+" no mesmo story, dividindo a tela (diagonal ou meio a meio), cada uma bem enquadrada."+extra;
+  return "juntar Foto "+a+" e Foto "+b+" no mesmo story: recorte a pessoa da Foto "+a+" (com o que ela segura, como a chave) e coloque à frente, com a Foto "+b+" ocupando o fundo. Recorte limpo, luz, sombra e escala realistas. Não altere rosto, mãos, chave nem a casa."+extra;
+}
+function persist(){ try{ localStorage.setItem(STORE, JSON.stringify({history,state,content})); }catch(e){} }
+
+const rnd = arr => arr[Math.floor(Math.random()*arr.length)];
+const optKeys = k => Object.keys(MODS[k].o);
+const comboStr = c => KEYS.map(k=>c[k]).filter(Boolean).join("-");
+function matches(a,b){ return KEYS.filter(k=>a[k]===b[k]).length; }
+function recent(){ return history.slice(0,3); }
+function recentStories(){ return recent().flatMap(h=>h.stories); }
+const words = s => (s.trim().match(/\S+/g)||[]).length;
+
+function pickStory(idx, others, opts){
+  const hist = opts.ignoreHist ? [] : recentStories();
+  const used = {}; KEYS.forEach(k=>used[k]=new Set(others.map(o=>o[k])));
+  const fullUsed = others.filter(o=>FULL.includes(o.A)).length;
+  for(let t=0;t<600;t++){
+    let A = optKeys("A").filter(x=>!used.A.has(x));
+    if(opts.photo) A = A.filter(x=>FULL.includes(x));          /* direção de foto: todos com foto inteira */
+    else if(fullUsed>=2) A = A.filter(x=>!FULL.includes(x));   /* direção gráfica: até 2 com foto inteira */
+    if(!A.length) return null;
+    const c = {A:rnd(A)};
+    if(FULL.includes(c.A)) c.D="D3";
+    else { const D = optKeys("D").filter(x=>x!=="D3"&&!used.D.has(x)); if(!D.length) continue; c.D=rnd(D); }
+    let bad=false;
+    for(const k of ["B","C","E","F","G"]){
+      let o = optKeys(k).filter(x=>!used[k].has(x));
+      if(!o.length){ bad=true; break; }
+      c[k]=rnd(o);
+    }
+    if(bad) return null;
+    if(hist.some(h=>matches(c,h)>2)) continue;
+    if(opts.differFrom && matches(c,opts.differFrom)>3) continue;
+    return c;
+  }
+  return null;
+}
+
+function sortCampaign(){
+  const sel = document.getElementById("daSel").value;
+  let da = sel;
+  if(sel.startsWith("auto")){
+    const avoid = new Set(recent().map(h=>h.da));
+    let base = Object.keys(DAS);
+    if(sel==="auto-foto") base = base.filter(isPhotoDA);
+    if(sel==="auto-graf") base = base.filter(d=>!isPhotoDA(d));
+    let pool = base.filter(d=>!avoid.has(d) && d!==state.da);
+    if(!pool.length) pool = base;
+    da = rnd(pool);
+  }
+  const L = (state.stories.length===4 && state.locked) ? state.locked.slice() : [false,false,false,false];
+  const temTrava = L.some(Boolean);
+  if(temTrava && sel.startsWith("auto")) da = state.da;   /* story travado foi pensado para a direção atual */
+  const photo = isPhotoDA(da);
+  let stories=null;
+  for(const ignoreHist of [false,true]){
+    for(let t=0;t<300 && !stories;t++){
+      const s=[]; let ok=true;
+      for(let i=0;i<4;i++){
+        if(L[i]){ s.push(state.stories[i]); continue; }
+        const others = s.concat(state.stories.filter((_,j)=>L[j] && j>i));
+        const c=pickStory(i,others,{ignoreHist,photo}); if(!c){ok=false;break;} s.push(c);
+      }
+      if(ok) stories=s;
+    }
+    if(stories) break;
+  }
+  if(!stories){ toast("Não foi possível sortear mantendo os stories travados. Destrave um deles."); return; }
+  state = {da, stories, saved:false, locked:L};
+  persist(); renderVisual(); renderOut();
+  if(temTrava) toast(sel.startsWith("auto") ? "Stories travados mantidos, com a mesma direção de arte" : "Stories travados mantidos");
+}
+function toggleLock(i){
+  if(!state.locked) state.locked=[false,false,false,false];
+  state.locked[i] = !state.locked[i];
+  persist(); renderVisual();
+}
+
+function reroll(i){
+  const others = state.stories.filter((_,j)=>j!==i);
+  const photo = isPhotoDA(state.da);
+  const c = pickStory(i, others, {photo, differFrom:state.stories[i]}) || pickStory(i, others, {photo, ignoreHist:true, differFrom:state.stories[i]});
+  if(!c){ toast("Não há outra combinação possível para este story"); return; }
+  state.stories[i]=c; state.saved=false; if(!state.locked) state.locked=[false,false,false,false]; persist(); renderVisual(); renderOut();
+  const el=document.querySelectorAll(".story")[i]; if(el){ el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"),600); }
+}
+
+function codeLine(da, stories){ return da+" | "+stories.map((c,i)=>"S"+(i+1)+" "+comboStr(c)).join(" | "); }
+
+function missing(){
+  let n=0;
+  content.s.forEach(s=>{ if(!s.titulo.trim()) n++; if(!s.texto.trim()) n++; });
+  if(!content.cta.trim()) n++;
+  return n;
+}
+
+function outText(){ return content.promptModo==="compacto" ? outCompact() : outLong(); }
+
+/* versão compacta: mesmas regras, em poucas linhas, e cada story numa ficha curta */
+function outCompact(){
+  const q = v => v.trim() ? '"'+v.trim()+'"' : "[PREENCHER]";
+  const [nome,desc] = DAS[state.da];
+  const espaco = content.logoMode !== "chatgpt";
+  let t = "KAP Edificações (construtora de casas): campanha de 4 stories de Instagram 9:16 (1080x1920), acabamento de agência.\n\n";
+  t += "REGRAS\n";
+  t += "- Cores: azul #0C6CEF, laranja #F97700 e branco.\n";
+  t += "- Fontes: ANTON nos títulos (condensada, pesada, caixa alta); SATOSHI no apoio e CTA; AMERTHA (pincel, assinatura) só em 1–2 palavras, azul ou laranja.\n";
+  t += "- Todo texto: escrito exatamente como entre aspas, com acentos; sempre na horizontal; contorno branco fino e sombra suave (efeito adesivo). Não invente texto e não use numeração (01/04).\n";
+  { const r = icRegra();
+    t += r.nenhum ? "- Sem ícones nesta campanha.\n" : "- Ícones: você cria, ligados ao conteúdo de cada texto, sem repetir; traço laranja em cartões ou pílulas brancas; sem texto dentro."+(r.txt?" "+r.txt+".":"")+"\n"; }
+  t += "- Nada cobre rostos, pessoas, mãos, chave ou fachada. Área segura: nada nos 250 px de cima nem nos 300 px de baixo.\n";
+  if(misto()) t += "- Fotos: as enviadas ficam como são (integre o que eu pedir com luz e escala reais); as geradas são realistas, sem cara de IA, combinando com as enviadas.\n";
+  else if(gerando()) t += "- Fotos: você gera, realistas, de fotógrafo profissional (pessoas brasileiras naturais, pele real, sem cara de IA); mesmas pessoas e casa entre os stories.\n";
+  else t += "- Fotos: use as enviadas como são (sem trocar pessoas ou casa, sem plastificar); junte fotos de forma natural quando eu pedir.\n";
+  t += espaco ? "- Logo: não desenhe; deixe um espaço limpo (~20% da largura) na posição indicada.\n" : "- Logo: use a logo enviada idêntica, sem redesenhar.\n";
+  t += "- Mesma direção de arte nos 4; composições claramente diferentes. Uma imagem por vez.\n\n";
+
+  t += "CAMPANHA\n";
+  if(gerando()) t += "Imagens: não vou enviar fotos; você gera uma por story.";
+  else t += "Imagens: a ordem de envio é a numeração (Foto 1, 2, 3...); a amostra das fontes, se vier, é só referência.";
+  t += "\n";
+  if(content.tema.trim()) t += "Tema: "+content.tema.trim()+"\n";
+  t += "Direção de arte: "+state.da+" — "+nome+" ("+desc+")"+(isPhotoDA(state.da)?" Foto inteira em todos, sem fundo chapado.":"")+"\n\n";
+
+  state.stories.forEach((c,i)=>{
+    const s = content.s[i];
+    t += "STORY "+(i+1)+" — "+PAPEIS[i]+"\n";
+    t += "Título: "+q(s.titulo)+" | Amertha: "+(s.destaque.trim() ? '"'+s.destaque.trim()+'"' : "você escolhe")+"\n";
+    t += "Texto: "+q(s.texto)+"\n";
+    const itens = (s.itens||"").split("\n").map(x=>x.trim()).filter(Boolean);
+    if(icOn(i) && itens.length) t += "Itens com ícone: "+itens.map(x=>'"'+x+'"').join(", ")+"\n";
+    if(i===3) t += "Botão CTA: "+q(content.cta)+"\n";
+    const ia = storyIA(i), multi = !ia && nums(s.fotos).length>1;
+    if(ia) t += "Foto a gerar: "+(s.cena.trim() || "cena realista que combine com o texto")+"\n";
+    else {
+      const ft = fotosTxt(s);
+      if(ft) t += "Fotos: "+ft+"\n";
+      if(misto() && s.cena.trim()) t += "Gerar junto com a foto: "+s.cena.trim()+"\n";
+    }
+    const parte = k => {
+      let nm = MODS[k].nome.toLowerCase();
+      if(k==="F"&&espaco) nm = "espaço da logo";
+      if(k==="A"&&multi) nm = s.juntar==="camadas" ? "foto de fundo" : "foto principal";
+      if(k==="G"&&!icOn(i)) return "sem ícones";
+      return c[k] ? nm+": "+MODS[k].o[c[k]] : null;
+    };
+    t += "Layout "+comboStr(c)+": "+KEYS.map(parte).filter(Boolean).join("; ")+(i===3?"; botão laranja arredondado com o CTA":"")+".\n\n";
+  });
+  t += "COMO TRABALHAR: primeiro mostre só a tabela (Story | Foto | Layout | Ícones que vai criar | Amertha), sem gerar imagem. Depois gere só quando eu disser \"gerar story X\", um por vez, mantendo o estilo do anterior. \"refazer story X\" = versão nova com outro arranjo; \"refazer story X: ajuste\" = muda só o ajuste. Siga sempre as regras.\n\n";
+  t += "CÓDIGO DA CAMPANHA: "+codeLine(state.da,state.stories);
+  return t;
+}
+
+function outLong(){
+  const q = v => v.trim() ? '"'+v.trim()+'"' : "[PREENCHER]";
+  const [nome,desc] = DAS[state.da];
+  const espaco = content.logoMode !== "chatgpt";
+  let t = "Você é o designer da KAP Edificações (construtora de casas). Crie uma campanha de 4 stories de Instagram em sequência, com acabamento de agência profissional. Siga TODAS as regras abaixo.\n\n";
+
+  t += "=== REGRAS FIXAS DA KAP ===\n";
+  t += "FORMATO: story 9:16 (1080x1920). Gere UMA imagem por vez, nunca grade ou colagem.\n";
+  t += "CORES: azul #0C6CEF (principal: blocos, fundos, títulos sobre branco), laranja #F97700 (destaques, botões, linhas, setas) e branco. Nenhuma outra cor dominante; cinza só em sombras sutis.\n";
+  t += "FONTES (imite o estilo descrito):\n";
+  t += "- ANTON nos títulos: sans-serif condensada, muito pesada, alta, sempre em CAIXA ALTA, espaçamento apertado.\n";
+  t += "- SATOSHI no texto de apoio e no CTA: sans-serif geométrica moderna, limpa, peso regular/médio.\n";
+  t += "- AMERTHA só no destaque de 1 ou 2 palavras: script de pincel estilo assinatura, traço grosso e inclinado, em azul ou laranja, sobreposta levemente ao título.\n";
+  t += "- Cada story usa pelo menos 2 dessas fontes. Nunca Amertha em frase longa.\n";
+  t += "ESTILO DOS TEXTOS (obrigatório): todo texto (título, apoio, destaque e CTA) leva contorno branco fino (cerca de 3 px) e sombra escura suave deslocada para baixo e à direita, com efeito de adesivo. Tarjas e botões podem levar a mesma borda branca fina e sombra. Contorno e sombra discretos, sem exagero.\n";
+  t += "TEXTOS: escreva EXATAMENTE os textos entre aspas, em português do Brasil, com todos os acentos corretos. Não invente nenhum outro texto (sem slogan, telefone, site ou letras soltas).\n";
+  t += "TEXTO SEMPRE NA HORIZONTAL: todos os textos (título, apoio, destaque e CTA) ficam na horizontal, lidos da esquerda para a direita. Nunca escreva texto na vertical, girado 90° ou de lado. Sobre faixa diagonal, no máximo uma leve inclinação.\n";
+  t += "ÁREA SEGURA: nenhum texto ou logo nos 250 px de cima nem nos 300 px de baixo.\n";
+  const ir = icRegra();
+  if(ir.nenhum) t += "ÍCONES: esta campanha não leva ícones. Não coloque ícones, selos com ícone nem cartões de ícone.\n";
+  else t += "ÍCONES ("+(ir.todos?"obrigatório em todos os stories":"só nos stories indicados; "+ir.txt)+"): VOCÊ cria os ícones. Leia o título, o texto e os itens de cada story e desenhe ícones exclusivos para esta campanha, que representem exatamente aquele conteúdo (se o texto fala de mudança, um caminhãozinho ou caixas; de família, pessoas; de planta, uma prancha; de entrada, uma porta). Os exemplos são só referência: escolha o símbolo mais claro e criativo para cada texto, sem repetir o mesmo ícone em stories diferentes. Todos os ícones da campanha seguem a mesma família visual (mesma espessura de traço, cantos e cor). Estilo principal: ícone simples em traço laranja dentro de cartões ou pílulas brancas de cantos arredondados, com o mesmo contorno branco e sombra suave dos textos. Ícone 3D suave só quando pedido. Ícones nunca têm texto dentro e nunca são genéricos ou sem relação com o texto. Não invente textos para acompanhar os ícones: use só os textos fornecidos.\n";
+  t += "COMPOSIÇÃO LIMPA: textos, cartões, pílulas e ícones ficam em áreas livres da foto (céu, chão, laterais, parede lisa). Nunca cubra rostos, pessoas, mãos, a chave ou a fachada principal da casa. Se não houver espaço livre, reduza ou reposicione os elementos em vez de colocá-los sobre as pessoas.\n";
+  if(misto()) t += "FOTOS: nesta campanha algumas fotos eu envio e outras você gera. FOTOS ENVIADAS: use como são; não troque pessoas, rostos, casas ou cenários; sem plastificar pele, sem filtro forte; pode recortar, reposicionar e aplicar degradê sutil. Quando eu pedir para gerar algo junto com uma foto enviada, integre de forma realista (mesma luz, perspectiva, escala e sombra), sem alterar as pessoas, os rostos e a casa da foto original. FOTOS GERADAS: devem parecer fotos reais de fotógrafo profissional, com luz natural, pessoas brasileiras com aparência natural, pele com textura real, mãos e rostos corretos, sem aparência de IA, e combinar com o estilo das fotos enviadas. Não repita a mesma foto em dois stories.\n";
+  else if(gerando()) t += "FOTOS: você vai GERAR as fotos. Elas devem parecer fotos reais, feitas por fotógrafo profissional: luz natural, cores naturais, pessoas brasileiras com aparência natural, pele com textura real (sem plastificar), mãos e rostos corretos, sem aparência de IA. Casas residenciais brasileiras de construtora (térreas ou sobrados), bem acabadas. Mantenha coerência entre os 4 stories: quando pessoas ou a casa aparecerem em mais de um story, são as mesmas. Cada story tem uma foto diferente.\n";
+  else t += "FOTOS: use as fotos enviadas como são. Não troque pessoas, rostos, casas ou cenários. Não plastifique pele, sem filtro forte, HDR ou brilho exagerado. Pode recortar, reposicionar e aplicar degradê sutil. Quando eu pedir para juntar fotos num story, faça a montagem de forma natural, como uma foto só. Não repita a mesma foto em dois stories.\n";
+  if(espaco) t += "LOGO: NÃO desenhe, NÃO escreva e NÃO recrie a logo da KAP. Em cada story, deixe um espaço limpo (cerca de 20% da largura, sem texto, sem grafismo e sem parte importante da foto) na posição indicada em \"Espaço reservado para a logo\". Eu coloco a logo original depois.\n";
+  else t += "LOGO: use a imagem da logo enviada exatamente como ela é: mesmas letras, cores, proporção e desenho. Não redesenhe, não recrie e não estilize. Se não conseguir reproduzir idêntica, deixe o espaço vazio.\n";
+  t += "UNIDADE: mesmas margens laterais (cerca de 80 px); mesma direção de arte, paleta e tratamento de foto nos 4. As composições dos 4 devem ser claramente diferentes.\n";
+  t += "SEM NUMERAÇÃO: não coloque número de página, contador ou indicação de sequência (01/04, 1/4, \"parte 1\" etc.) em nenhum story.\n\n";
+
+  t += "=== ESTA CAMPANHA ===\n";
+  const temFotos = content.s.some((s,i)=>!storyIA(i) && nums(s.fotos).length);
+  if(misto()){
+    const ia = content.s.map((s,i)=>i).filter(i=>storyIA(i)).map(i=>i+1);
+    t += "IMAGENS ANEXADAS: a ordem de envio é a numeração das fotos (Foto 1, Foto 2, Foto 3...). Se eu anexar a imagem de amostra das fontes (ANTON / SATOSHI FAMILY / amertha)"+(espaco?"":" ou a logo")+", ela é só referência e não conta como foto. ";
+    t += ia.length ? "Story "+ia.join(", ")+(ia.length>1?" usam":" usa")+" só foto gerada por você. " : "";
+    t += temFotos ? "Nos outros, siga as fotos indicadas em cada story.\n" : "Distribua as fotos enviadas entre os outros stories.\n";
+  }
+  else if(gerando()) t += "IMAGENS: não vou enviar fotos; você gera uma foto para cada story, como descrito em cada um. Se eu anexar a imagem de amostra das fontes (ANTON / SATOSHI FAMILY / amertha)"+(espaco?"":" ou a logo")+", ela é só referência de estilo.\n";
+  else {
+  t += "IMAGENS ANEXADAS: a ordem de envio é a numeração das fotos (Foto 1, Foto 2, Foto 3...). Se eu anexar a imagem de amostra das fontes (ANTON / SATOSHI FAMILY / amertha)"+(espaco?"":" ou a logo")+", ela é só referência e não conta como foto. ";
+  t += temFotos
+    ? "Siga as fotos indicadas em cada story; alguns stories juntam mais de uma foto. Story sem foto indicada: use uma das fotos que não foram usadas.\n"
+    : "Distribua uma foto por story. Se achar que outra distribuição combina melhor com o texto, sugira na tabela.\n";
+  }
+  if(content.tema.trim()) t += "TEMA: "+content.tema.trim()+"\n";
+  t += "DIREÇÃO DE ARTE: "+state.da+" — "+nome+" ("+desc+")\n";
+  if(isPhotoDA(state.da)) t += "FOTO EM DESTAQUE: a foto ocupa a tela inteira em todos os stories. Não use fundo chapado. Textos e grafismos ficam sobre a foto, sem esconder o principal dela (pessoas, rostos, a casa).\n";
+  t += "Use EXATAMENTE as combinações abaixo.\n\n";
+  state.stories.forEach((c,i)=>{
+    const s = content.s[i];
+    t += "STORY "+(i+1)+" — "+PAPEIS[i]+"\n";
+    t += "Título: "+q(s.titulo)+"\n";
+    t += "Destaque Amertha: "+(s.destaque.trim() ? '"'+s.destaque.trim()+'"' : "escolha 1 ou 2 palavras do título")+"\n";
+    t += "Texto: "+q(s.texto)+"\n";
+    const itens = (s.itens||"").split("\n").map(x=>x.trim()).filter(Boolean);
+    if(!icOn(i)) t += "Ícones: nenhum neste story (sem ícones, selos com ícone ou cartões de ícone).\n";
+    else if(itens.length) t += "Itens com ícone (escreva exatamente; crie um ícone próprio que represente cada item):\n"+itens.map(x=>'- "'+x+'"').join("\n")+"\n";
+    else if(LISTA_ICONES.includes(c.G)) t += "Itens com ícone: divida o texto de apoio em 2 ou 3 partes curtas, sem mudar nem acrescentar palavras, cada parte com seu ícone.\n";
+    if(i===3) t += "Botão CTA: "+q(content.cta)+"\n";
+    const ia = storyIA(i), ft = ia ? null : fotosTxt(s), multi = !ia && nums(s.fotos).length>1;
+    if(ia) t += "Foto a gerar"+(misto()?" (só IA, sem foto enviada)":"")+": "+(s.cena.trim() ? s.cena.trim() : "crie uma cena realista que combine com o título e o texto deste story")+"\n";
+    else {
+      if(ft) t += "Fotos: "+ft+"\n";
+      else if(misto()) t += "Fotos: use uma das fotos enviadas que ainda não foi usada.\n";
+      if(misto() && s.cena.trim()) t += "Gerar junto com a foto enviada: "+s.cena.trim()+". Integre de forma realista, sem alterar as pessoas, os rostos e a casa da foto original.\n";
+    }
+    t += "Combinação "+comboStr(c)+":\n";
+    KEYS.forEach(k=>{
+      let nm = MODS[k].nome;
+      if(k==="F"&&espaco) nm = "Espaço reservado para a logo";
+      if(k==="A"&&multi) nm = s.juntar==="camadas" ? "Tratamento da foto de fundo" : "Tratamento da foto principal";
+      const extra = (k==="A"&&multi&&s.juntar==="camadas"&&!FULL.includes(c.A)) ? " (a pessoa recortada pode sair para fora dessa forma, dando profundidade)" : "";
+      if(k==="G" && !icOn(i)) return;
+      if(c[k]) t += "- "+nm+": "+MODS[k].o[c[k]]+extra+"\n";
+    });
+    if(i===3) t += "- Obrigatório: botão laranja com cantos arredondados contendo o CTA e "+(espaco?"espaço maior reservado para a logo":"logo em destaque")+"\n";
+    t += "\n";
+  });
+  t += "=== COMO TRABALHAR ===\n";
+  t += "1. Agora NÃO gere imagens. Mostre só a tabela: Story | "+(gerando()?"Foto que vou gerar":misto()?"Foto(s) enviada(s) ou gerada | O que será gerado":"Foto(s)")+" | Combinação | Descrição em 1 frase | Ícones que você vai criar (o que cada um representa) | Palavra em Amertha.\n";
+  t += "2. Depois que eu aprovar, gere apenas quando eu disser \"gerar story X\", uma imagem por vez.\n";
+  t += "3. A partir do story 2, use o story anterior como referência de estilo (mesma paleta, tratamento de foto, grafismos, contorno e sombra nos textos), mudando só a composição.\n";
+  t += "4. REFAZER: quando eu disser \"refazer story X\", gere uma versão NOVA do story X, com os mesmos textos, fotos e combinação, mas com outro arranjo, enquadramento e posição dos elementos. Não copie nem retoque a versão anterior.\n";
+  t += "5. REFAZER COM AJUSTE: quando eu disser \"refazer story X: <ajuste>\", mantenha tudo igual e mude só o que eu pedir.\n";
+  t += "6. Em qualquer refação, continue seguindo todas as regras fixas da KAP.\n\n";
+  t += "CÓDIGO DA CAMPANHA: "+codeLine(state.da,state.stories);
+  return t;
+}
+
+/* ---------- miniatura ---------- */
+const BLUE="var(--kap-blue)", ORANGE="var(--kap-orange)", WHITE="var(--kap-white)";
+const PHOTO = {
+  A1:"left:0;top:0;width:100%;height:100%",
+  A9:"left:0;top:0;width:100%;height:100%",
+  A11:"left:0;top:0;width:100%;height:100%",
+  A12:"left:0;top:0;width:100%;height:100%",
+  A13:"left:0;top:0;width:100%;height:100%",
+  A14:"left:0;top:0;width:100%;height:100%",
+  A15:"left:0;top:0;width:100%;height:100%",
+  A16:"left:6%;top:16%;width:88%;height:52%;border-radius:14px",
+  A18:"left:0;top:0;width:100%;height:66%;clip-path:polygon(0 0,100% 0,100% 78%,0 100%)",
+  A19:"left:0;top:44%;width:100%;height:56%;border-radius:22px 22px 0 0",
+  A20:"left:0;top:0;width:100%;height:100%",
+  A21:"left:0;top:0;width:100%;height:100%;filter:blur(1.5px)",
+  A22:"left:0;top:0;width:100%;height:100%;clip-path:polygon(0 34%,100% 20%,100% 56%,0 70%)",
+  A2:"left:14%;top:24%;width:72%;height:36%;border-radius:8px;transform:rotate(-4deg);box-shadow:0 3px 8px rgba(0,0,0,.25)",
+  A3:"left:16%;top:22%;width:68%;height:38%;clip-path:polygon(50% 0,100% 32%,100% 100%,0 100%,0 32%)",
+  A4:"left:0;top:38%;width:100%;height:24%",
+  A5:"left:50%;top:0;width:50%;height:100%",
+  A6:"left:18%;top:20%;width:64%;height:40%;border-radius:50% 50% 0 0/32% 32% 0 0",
+  A7:"left:28%;top:16%;width:92%;height:51.75%;border-radius:50%",
+  A8:"left:8%;top:20%;width:60%;height:34%",
+  A10:"left:16%;top:22%;width:68%;height:36%;border:4px solid #fff;border-bottom-width:14px;transform:rotate(3deg);box-shadow:0 3px 8px rgba(0,0,0,.25)"
+};
+function textBox(B, idx){
+  const cta = idx===3;
+  switch(B){
+    case "B1": return {t:{l:8,t:19,w:84}};
+    case "B2": return {t:{l:8,t:42,w:84}};
+    case "B3": return {t:{l:8,t:cta?50:62,w:84}};
+    case "B4": return {t:{l:7,t:34,w:40}};
+    case "B5": return {t:{l:53,t:34,w:40}};
+    case "B6": return {t:{l:12,t:cta?52:63,w:76}, band:true};
+    case "B7": return {t:{l:8,t:19,w:84}, split:{l:8,t:cta?60:70,w:84}};
+    case "B8": return {t:{l:12,t:cta?50:58,w:76}, card:true};
+    case "B9": return {t:{l:8,t:19,w:66}, split:{l:26,t:cta?58:66,w:66}, card:true};
+    case "B10": return {t:{l:8,t:19,w:72}, split:{l:46,t:cta?56:64,w:46}};
+    case "B11": return {t:{l:8,t:cta?42:46,w:84}, hband:true};
+    case "B12": return {t:{l:0,t:36,w:60}, tab:true};
+  }
+}
+function bg(D){
+  return {D1:BLUE,D2:WHITE,D3:"#5a6b84",D4:BLUE+";background-image:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px);background-size:9px 9px",
+    D5:"linear-gradient("+BLUE+" 0 50%,"+WHITE+" 50%)",
+    D6:"linear-gradient(#0A3E9A,#5AA0FF)",
+    D7:"#EEF0F2;background-image:radial-gradient(rgba(0,0,0,.05) 1px,transparent 1px);background-size:4px 4px"}[D];
+}
+function inkFor(D, top){ if(D==="D2"||D==="D7") return BLUE; if(D==="D5") return top>48?BLUE:WHITE; return WHITE; }
+function titleHTML(C, ink){
+  const bar=(w,h,extra="")=>'<div class="bar" style="width:'+w+'%;height:'+h+'px;background:'+ink+';'+extra+'"></div>';
+  switch(C){
+    case "C1": return bar(58,5)+bar(46,5)+bar(64,5);
+    case "C2": return bar(100,8);
+    case "C3": return '<div style="display:flex;gap:2px">'+bar(48,6)+'<div class="bar" style="width:34%;height:6px;background:'+ORANGE+'"></div></div>'+bar(70,6);
+    case "C4": return bar(82,7,"background:transparent;border:1.5px solid "+ink)+bar(60,6);
+    case "C5": return '<div style="background:'+ORANGE+';padding:3px;width:86%"><div class="bar" style="width:100%;height:6px;background:#fff"></div></div>';
+    case "C6": return bar(80,6)+bar(56,6)+'<div class="bar" style="width:46%;height:3px;background:'+ORANGE+'"></div>';
+    case "C7": return bar(54,12)+bar(78,3);
+    case "C8": return bar(62,6)+'<div style="background:'+ORANGE+';padding:1px 2px;width:56%"><div class="bar" style="width:100%;height:6px;background:#fff"></div></div>'+bar(48,6);
+    case "C9": return bar(80,7)+bar(66,7,"background:"+ORANGE)+bar(56,7);
+    case "C10": return '<div style="display:flex;width:92%"><div class="bar" style="width:42%;height:11px;background:'+ink+'"></div><div class="bar" style="width:58%;height:11px;background:'+ORANGE+'"></div></div>';
+    case "C11": return bar(80,6)+bar(64,6)+'<svg viewBox="0 0 40 6" style="position:static;width:64%;height:auto"><path d="M1 4 Q20 0 39 3" fill="none" stroke="#F97700" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  }
+}
+function lines(ink, n=3){ return [92,84,58].slice(0,n).map(w=>'<div class="ln" style="width:'+w+'%;background:'+ink+'"></div>').join(""); }
+function script(){ return '<svg viewBox="0 0 40 10" style="position:static;width:42%;height:auto;margin:1px 0 1px 20%"><path d="M2 7 C6 1, 9 9, 13 4 S20 8, 24 3 S32 8, 38 2" fill="none" stroke="#F97700" stroke-width="2" stroke-linecap="round"/></svg>'; }
+function grafismo(E){
+  const o='stroke="#F97700" fill="none" stroke-width="1.2" stroke-linecap="round"';
+  switch(E){
+    case "E1": return '<path d="M8 14 H82 M8 11.5 V16.5 M82 11.5 V16.5 M8 14 l3 -1.5 M8 14 l3 1.5 M82 14 l-3 -1.5 M82 14 l-3 1.5" '+o+'/>';
+    case "E2": return '<path d="M66 16 L74 9 L82 16" '+o+' stroke-width="1.8"/>';
+    case "E3": return '<path d="M70 92 H82 M78 88 L82 92 L78 96" '+o+' stroke-width="1.6"/>';
+    case "E4": { let p=""; for(let x=10;x<90;x+=10) p+='M'+x+' 0 V160 '; for(let y=10;y<160;y+=10) p+='M0 '+y+' H90 '; return '<path d="'+p+'" stroke="rgba(255,255,255,.22)" stroke-width=".5"/>'; }
+    case "E5": return '<circle cx="74" cy="40" r="8" '+o+' stroke-dasharray="2 1.5"/><circle cx="74" cy="40" r="5.5" '+o+' stroke-width=".7"/>';
+    case "E6": return '<path d="M0 141 H90" stroke="#F97700" stroke-width="1.2"/>';
+    case "E7": return '<path d="M5 12 V5 H12 M78 5 H85 V12 M85 148 V155 H78 M12 155 H5 V148" '+o+' stroke-width="1.4"/>';
+    case "E8": return '<circle cx="72" cy="18" r="3.5" '+o+'/><path d="M75.5 18 H86 M83 18 V21 M86 18 V21" '+o+'/>';
+    case "E9": return '<path d="M6 150 C28 128, 52 152, 84 122" '+o+' stroke-dasharray="2 2"/><circle cx="6" cy="150" r="1.8" fill="#F97700"/><circle cx="45" cy="140" r="1.8" fill="#F97700"/><circle cx="84" cy="122" r="1.8" fill="#F97700"/>';
+    case "E10": { let r=""; [[4,5],[74,143]].forEach(([x0,y0])=>{ for(let i=0;i<4;i++) for(let j=0;j<3;j++) r+='<rect x="'+(x0+i*3)+'" y="'+(y0+j*3)+'" width="3" height="3" fill="'+((i+j)%2?"#0C6CEF":"#F97700")+'"/>'; }); return r; }
+    case "E11": return '<path d="M78 22 l5 -5 M80 28 l7 -1 M74 18 l1 -6 M8 40 l-5 -3 M9 46 l-6 1" stroke="#F97700" stroke-width="1.6" stroke-linecap="round"/>';
+    case "E12": return '<path d="M0 140 L20 160 M0 132 L28 160 M0 124 L36 160 M0 116 L44 160" stroke="#F97700" stroke-width=".6"/>';
+  }
+}
+/* ícones desenhados DENTRO do bloco de texto, para acompanharem o texto e não flutuarem sobre a foto */
+function iconesHTML(G){
+  const dot = (r="50%") => '<span style="display:block;flex:none;width:5px;height:5px;border-radius:'+r+';background:#F97700"></span>';
+  const ln = w => '<span style="display:block;height:2px;width:'+w+'%;background:#9AA6B8;border-radius:1px"></span>';
+  const pill = (w,r="8px",ic=dot("50%")) => '<div style="display:flex;align-items:center;gap:3px;width:'+w+'%;background:#fff;border-radius:'+r+';padding:2px 3px;box-shadow:0 1px 2px rgba(0,0,0,.25)">'+ic+ln(70)+'</div>';
+  const wrap = inner => '<div style="display:flex;flex-direction:column;gap:2px;margin-top:3px">'+inner+'</div>';
+  switch(G){
+    case "G1": return wrap(pill(80,"10px"));
+    case "G2": return wrap(pill(66,"2px",dot("1px"))+pill(66,"2px",dot("1px"))+pill(66,"2px",dot("1px")));
+    case "G3": return '<div style="display:flex;gap:3px;margin-top:3px">'+[0,1].map(()=>'<div style="flex:1;background:#fff;border-radius:2px;padding:3px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 1px 2px rgba(0,0,0,.25)">'+dot()+ln(80)+'</div>').join("")+'</div>';
+    case "G4": return '<div style="display:flex;align-items:center;gap:2px;margin-top:3px"><span style="display:block;flex:none;width:10px;height:10px;background:#F97700;clip-path:polygon(50% 0,100% 45%,86% 45%,86% 100%,14% 100%,14% 45%,0 45%)"></span>'+pill(70,"10px","")+'</div>';
+    case "G5": return '<span style="position:absolute;right:-1px;top:-11px;width:10px;height:10px;border-radius:50%;border:2px solid #F97700"></span>';
+    case "G6": return '<div style="display:flex;gap:4px;margin-top:3px">'+[0,1,2].map(()=>'<span style="display:flex;align-items:center;justify-content:center;width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)">'+dot()+'</span>').join("")+'</div>';
+    case "G7": return '<div style="display:flex;justify-content:space-between;gap:3px;margin-top:3px;background:#fff;border-radius:3px;padding:3px;box-shadow:0 1px 2px rgba(0,0,0,.25)">'+[0,1,2].map(()=>'<span style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'+dot()+ln(80)+'</span>').join("")+'</div>';
+    case "G8": return '<div style="display:flex;align-items:center;gap:3px;margin-top:3px"><span style="display:flex;align-items:center;justify-content:center;width:13px;height:10px;background:#fff;border-radius:4px 4px 4px 0;box-shadow:0 1px 2px rgba(0,0,0,.25)">'+dot()+'</span>'+ln(60)+'</div>';
+    default: return "";
+  }
+}
+function logoHTML(F, D){
+  const ink = D==="D2"?BLUE:WHITE;
+  const pos={F1:"left:40%;top:14%",F2:"left:8%;top:14%",F3:"left:72%;top:80%",F4:"left:40%;top:80%",F6:"left:72%;top:14%",F7:"left:8%;top:80%"}[F];
+  const vazio = content && content.logoMode !== "chatgpt";
+  if(F==="F5") return '<div class="seal" style="left:76%;top:76%;background:'+(vazio?"transparent":BLUE)+(vazio?";border-style:dashed":"")+'"></div>';
+  if(vazio) return '<div class="logo" style="'+pos+';border:1.5px dashed '+ORANGE+'"></div>';
+  return '<div class="logo" style="'+pos+';background:'+ink+';outline:1px solid '+ORANGE+'"></div>';
+}
+function wire(c, idx){
+  let h='<div class="wf" style="background:'+bg(c.D)+'" role="img" aria-label="Rascunho do story '+(idx+1)+'">';
+  const full = FULL.includes(c.A);
+  if(c.A==="A17"){
+    [8,37,66].forEach(l=>{ h+='<div class="ph" style="left:'+l+'%;top:18%;width:26%;height:46%"></div>'; });
+  } else if(c.A==="A8"){
+    h+='<div class="ph" style="'+PHOTO.A8+'"></div><div class="ph" style="left:54%;top:46%;width:38%;height:20%;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.25)"></div>';
+  } else h+='<div class="ph'+(c.A==="A1"?" full":"")+'" style="'+PHOTO[c.A]+'"></div>';
+  if(c.A==="A12") h+='<div style="position:absolute;inset:3.5% 6%;border:1.5px solid #fff"></div>';
+  if(c.A==="A13") h+='<div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(12,108,239,.8),transparent 70%)"></div>';
+  if(c.A==="A20") h+='<div style="position:absolute;inset:0;border:7px solid '+BLUE+'"></div>';
+  if(c.A==="A21") h+='<div class="ph" style="left:16%;top:24%;width:68%;height:34%;border:3px solid #fff;border-radius:6px;box-shadow:0 3px 8px rgba(0,0,0,.3)"></div>';
+  const sc = content && content.s[idx];
+  if(sc && !storyIA(idx) && nums(sc.fotos).length>1){
+    if(sc.juntar==="destaque") h+='<div class="ph" style="left:56%;top:46%;width:34%;height:17%;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3);background:repeating-linear-gradient(45deg,var(--ph-b) 0 5px,var(--ph-a) 5px 10px)"></div>';
+    else if(sc.juntar==="dividida") h+='<div class="ph" style="left:50%;top:0;width:50%;height:100%;border-left:2px solid #fff;background:repeating-linear-gradient(45deg,var(--ph-b) 0 6px,var(--ph-a) 6px 12px)"></div>';
+    else h+='<div style="position:absolute;left:39%;top:44%;width:22%;aspect-ratio:1;border-radius:50%;background:#2b3a52;outline:1.5px solid #fff"></div>'
+          +'<div style="position:absolute;left:27%;top:56%;width:46%;height:30%;border-radius:45% 45% 0 0;background:#2b3a52;outline:1.5px solid #fff"></div>';
+  }
+  h+='<svg viewBox="0 0 90 160" aria-hidden="true">'+grafismo(c.E)+'</svg>';
+  const tb = textBox(c.B, idx);
+  if(c.A==="A15") h+='<div style="position:absolute;left:12%;top:28%;width:76%;height:34%;border:3px solid #fff"></div><div style="position:absolute;left:38%;top:18%;width:24%;aspect-ratio:1;border-radius:50%;background:#2b3a52;outline:1.5px solid #fff"></div>';
+  const boxBg = tb.tab ? ";background:"+(["D1","D4","D6"].includes(c.D)?ORANGE:BLUE)+";padding:5px 6px 5px 8px;border-radius:0 6px 6px 0" : tb.card ? ";background:#fff;padding:5px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.25)" : c.A==="A11" ? ";background:"+BLUE+";padding:3px" : c.A==="A14" ? ";background:rgba(12,108,239,.6);padding:4px;border-radius:4px" : "";
+  const bgBand = ["D1","D4","D6"].includes(c.D)?ORANGE:BLUE;
+  if(tb.hband) h+='<div style="position:absolute;left:0;width:100%;top:'+(tb.t.t-3)+'%;height:22%;background:'+bgBand+'"></div>';
+  if(tb.band) h+='<div style="position:absolute;left:-10%;width:120%;top:'+(tb.t.t-3)+'%;height:22%;transform:rotate(-7deg);background:'+(["D1","D4"].includes(c.D)?ORANGE:BLUE)+'"></div>';
+  const inkT = tb.card ? BLUE : (tb.band||tb.hband||tb.tab) ? WHITE : (full ? WHITE : inkFor(c.D, tb.t.t));
+  if(tb.split){
+    h+='<div class="box" style="left:'+tb.t.l+'%;top:'+tb.t.t+'%;width:'+tb.t.w+'%'+boxBg+'">'+titleHTML(c.C,inkT)+script()+'</div>';
+    const inkB = tb.card ? BLUE : full ? WHITE : inkFor(c.D, tb.split.t);
+    h+='<div class="box" style="left:'+tb.split.l+'%;top:'+tb.split.t+'%;width:'+tb.split.w+'%'+boxBg+'">'+lines(inkB)+iconesHTML(icOn(idx)?c.G:null)+'</div>';
+  } else {
+    h+='<div class="box" style="left:'+tb.t.l+'%;top:'+tb.t.t+'%;width:'+tb.t.w+'%'+boxBg+'">'+titleHTML(c.C,inkT)+script()+lines(inkT)+iconesHTML(icOn(idx)?c.G:null)+'</div>';
+  }
+  if(idx===3) h+='<div class="ctab" style="top:73%"></div>';
+  h+=logoHTML(c.F, c.D);
+  h+='<div class="safe" style="top:13%"></div><div class="safe" style="top:84.4%"></div>';
+  return h+'</div>';
+}
+
+/* ---------- render ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch])); }
+
+function buildCards(){
+  document.getElementById("stories").innerHTML = [0,1,2,3].map(i=>
+    '<article class="story">'
+    +'<div class="story-head"><h2>Story <span>0'+(i+1)+'</span> · '+PAPEIS[i]+'</h2><div class="head-tools"><span class="combo" data-combo="'+i+'"></span>'
+      +'<button type="button" class="lock" data-lock="'+i+'" aria-pressed="false" aria-label="Travar story 0'+(i+1)+'" title="Travar este story no próximo sorteio">'
+      +'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path class="shackle" d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div></div>'
+    +'<div><div data-wire="'+i+'"></div><div class="wf-legend">Rascunho. Linhas tracejadas = área segura.</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><ul class="mods" data-mods="'+i+'"></ul>'
+    +'<div><button class="btn-ghost btn-small" data-reroll="'+i+'">Trocar este story</button></div></div>'
+    +'<div class="fields">'
+      +'<div class="field full"><label for="t'+i+'">Título</label><input type="text" class="title-in" id="t'+i+'" data-f="titulo" data-i="'+i+'" placeholder="Ex.: O SEU SONHO AGORA TEM ENDEREÇO!"></div>'
+      +'<div class="field full"><label for="x'+i+'">Texto de apoio <small>(até '+TEXT_LIMIT+' palavras)</small></label><textarea id="x'+i+'" data-f="texto" data-i="'+i+'" rows="3"></textarea><div class="count" data-count="'+i+'"></div></div>'
+      +'<div class="field full ia-toggle"><label class="switch"><input type="checkbox" id="ic'+i+'" data-f="icones" data-i="'+i+'" checked><span class="track" aria-hidden="true"></span><span>Ícones neste story</span></label></div>'
+      +'<div class="field full" data-itw="'+i+'"><label for="it'+i+'">Itens com ícone <small>(opcional, um por linha; vazio = ícones acompanham o texto)</small></label><textarea id="it'+i+'" data-f="itens" data-i="'+i+'" rows="2" placeholder="Ex.:&#10;Orientação&#10;Documentação&#10;Acompanhamento"></textarea></div>'
+      +'<div class="field"><label for="d'+i+'">Destaque em Amertha <small>(1 ou 2 palavras, opcional)</small></label><input type="text" id="d'+i+'" data-f="destaque" data-i="'+i+'" placeholder="Ex.: sonho"></div>'
+      +'<div class="field full ia-toggle" data-iaw="'+i+'" hidden><label class="switch"><input type="checkbox" id="ia'+i+'" data-f="soIA" data-i="'+i+'"><span class="track" aria-hidden="true"></span><span>Só foto de IA neste story</span></label></div>'
+      +'<div class="field full" data-gw="'+i+'" hidden><label for="g'+i+'" data-gl="'+i+'">Foto que o ChatGPT vai gerar</label><input type="text" id="g'+i+'" data-f="cena" data-i="'+i+'" placeholder="Ex.: casal sorrindo segurando a chave em frente à casa nova"></div>'
+      +'<div class="field" data-fw="'+i+'"><label for="f'+i+'">Fotos deste story <small>(ex.: 2 ou 2 e 3; vazio = ChatGPT escolhe)</small></label><input type="text" id="f'+i+'" data-f="fotos" data-i="'+i+'" placeholder="Ex.: 2 e 3"></div>'
+      +'<div class="field" data-jw="'+i+'"><label for="j'+i+'">Como juntar as fotos</label><select id="j'+i+'" data-f="juntar" data-i="'+i+'">'
+        +Object.keys(JUNTAR).map(k=>'<option value="'+k+'">'+JUNTAR[k]+'</option>').join("")+'</select><div class="count" data-jhint="'+i+'" style="text-align:left"></div></div>'
+      +(i===3?'<div class="field"><label for="cta">Botão CTA</label><input type="text" class="title-in" id="cta" data-f="cta" placeholder="Ex.: FALE COM A KAP"></div>':'')
+    +'</div></article>'
+  ).join("");
+}
+function fillFields(){
+  document.getElementById("tema").value = content.tema;
+  document.getElementById("logoMode").value = content.logoMode || "espaco";
+  content.s.forEach((s,i)=>{
+    document.getElementById("t"+i).value = s.titulo;
+    document.getElementById("x"+i).value = s.texto;
+    document.getElementById("d"+i).value = s.destaque;
+    document.getElementById("it"+i).value = s.itens||"";
+    document.getElementById("ic"+i).checked = s.icones!==false;
+    document.querySelector('[data-itw="'+i+'"]').hidden = s.icones===false;
+    document.getElementById("f"+i).value = s.fotos;
+    document.getElementById("g"+i).value = s.cena;
+    document.getElementById("ia"+i).checked = !!s.soIA;
+    document.getElementById("j"+i).value = s.juntar;
+    updateCount(i); updateJunta(i);
+  });
+  document.getElementById("cta").value = content.cta;
+  applyFotoModo();
+}
+function applyFotoModo(){
+  const modo = content.fotoModo;
+  document.querySelectorAll("[data-fm]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.fm===modo)));
+  [0,1,2,3].forEach(i=>{
+    const ia = storyIA(i);
+    document.querySelector('[data-iaw="'+i+'"]').hidden = !misto();
+    document.querySelector('[data-fw="'+i+'"]').hidden = ia;
+    document.querySelector('[data-gw="'+i+'"]').hidden = modo==="enviar";
+    const gl = document.querySelector('[data-gl="'+i+'"]'), gi = document.getElementById("g"+i);
+    if(ia){ gl.innerHTML = 'Foto que o ChatGPT vai gerar <small>(opcional; vazio = ele cria uma cena que combine com o texto)</small>'; gi.placeholder = "Ex.: casal sorrindo segurando a chave em frente à casa nova"; }
+    else { gl.innerHTML = 'O que o ChatGPT deve gerar junto com a foto enviada <small>(opcional)</small>'; gi.placeholder = "Ex.: confetes caindo e um laço vermelho na porta"; }
+    updateJunta(i);
+    if(state.stories[i]) document.querySelector('[data-wire="'+i+'"]').innerHTML = wire(state.stories[i],i);
+  });
+}
+function updateJunta(i){
+  const s = content.s[i], n = nums(s.fotos), wrap = document.querySelector('[data-jw="'+i+'"]');
+  wrap.hidden = storyIA(i) || n.length<2;
+  const hint = document.querySelector('[data-jhint="'+i+'"]');
+  hint.textContent = s.juntar==="camadas" ? "1º número = pessoa na frente · 2º = fundo" : "1º número = foto principal";
+}
+function updateCount(i){
+  const n = words(content.s[i].texto), el = document.querySelector('[data-count="'+i+'"]');
+  el.textContent = n+" / "+TEXT_LIMIT+" palavras";
+  el.classList.toggle("over", n>TEXT_LIMIT);
+}
+function renderVisual(){
+  const [nome,desc]=DAS[state.da];
+  document.getElementById("daBox").innerHTML='<span class="code">'+state.da+'</span><span class="name">'+esc(nome)+'</span>'
+    +(isPhotoDA(state.da)?'<span class="code" style="background:#fff;color:var(--kap-blue)">Foto inteira</span>':'')
+    +'<span class="desc">'+esc(desc)+'</span>';
+  state.stories.forEach((c,i)=>{
+    document.querySelector('[data-combo="'+i+'"]').textContent = comboStr(c);
+    document.querySelector('[data-wire="'+i+'"]').innerHTML = wire(c,i);
+    document.querySelector('[data-mods="'+i+'"]').innerHTML = KEYS.map(k=>(k==="G"&&!icOn(i))
+        ? '<li><b style="text-decoration:line-through;opacity:.6">'+c[k]+'</b><span style="color:var(--muted)">Ícones: desligados neste story</span></li>'
+        : '<li><b>'+c[k]+'</b><span>'+esc(MODS[k].nome)+': '+esc(MODS[k].o[c[k]])+'</span></li>').join("")
+      + (i===3?'<li class="cta"><span>+ botão laranja com o CTA e logo em destaque</span></li>':'');
+    const lk = !!(state.locked && state.locked[i]);
+    const lb = document.querySelector('[data-lock="'+i+'"]');
+    lb.setAttribute("aria-pressed", String(lk));
+    lb.setAttribute("aria-label", (lk?"Destravar":"Travar")+" story 0"+(i+1));
+    lb.title = lk ? "Travado: o sorteio mantém este story" : "Travar este story no próximo sorteio";
+    lb.closest(".story").classList.toggle("locked", lk);
+    const rb = document.querySelector('[data-reroll="'+i+'"]');
+    rb.disabled = lk; rb.textContent = lk ? "Travado" : "Trocar este story";
+  });
+  const bs=document.getElementById("btnSave"); bs.disabled=state.saved; bs.textContent=state.saved?"Salvo no histórico":"Salvar no histórico";
+  renderHist();
+}
+function renderOut(){
+  const txt = outText();
+  document.getElementById("out").value = txt;
+  const comp = content.promptModo==="compacto";
+  document.querySelectorAll("[data-pm]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.pm===(comp?"compacto":"completo"))));
+  const outro = comp ? outLong().length : outCompact().length;
+  document.getElementById("charCount").textContent = txt.length.toLocaleString("pt-BR")+" caracteres ("+(comp?"completa":"compacta")+": "+outro.toLocaleString("pt-BR")+")";
+  document.getElementById("pmNote").textContent = comp
+    ? "Mesmas regras em poucas linhas. Use se o ChatGPT estiver ignorando alguma regra ou em conversas longas."
+    : "Todas as regras explicadas em detalhe. Use na primeira campanha ou quando quiser o máximo de controle.";
+  const m = missing(), st = document.getElementById("status");
+  const longos = content.s.filter(s=>words(s.texto)>TEXT_LIMIT).length;
+  const vistas = {}, repetidas = new Set();
+  content.s.forEach((s,i)=>{ if(!storyIA(i)) nums(s.fotos).forEach(n=>{ if(vistas[n]) repetidas.add(n); vistas[n]=1; }); });
+  if(repetidas.size){ st.className="status warn"; st.textContent = "A "+[...repetidas].map(n=>"Foto "+n).join(" e a ")+" aparece em mais de um story. Cada foto deve ficar em um story só."; }
+  else if(m){ st.className="status warn"; st.textContent = (m===1?"Falta 1 campo":"Faltam "+m+" campos")+" (aparecem como [PREENCHER] no prompt)"; }
+  else if(longos){ st.className="status warn"; st.textContent = longos+(longos===1?" texto passou":" textos passaram")+" de "+TEXT_LIMIT+" palavras. Textos longos aumentam erros de escrita na imagem."; }
+  else { st.className="status"; st.textContent = "Prompt completo, pronto para copiar"; }
+}
+function renderHist(){
+  const ul=document.getElementById("hist");
+  if(!history.length){ ul.innerHTML='<li class="empty">Nenhuma campanha salva ainda. Depois de usar uma campanha no ChatGPT, clique em "Salvar no histórico".</li>'; return; }
+  ul.innerHTML = history.map((h,i)=>{
+    const d = h.date ? new Date(h.date).toLocaleDateString("pt-BR") : "importada";
+    return '<li><div class="meta"><span>'+(i<3?'<span class="recent">Evitada · </span>':'')+esc(d)+' · '+esc(DAS[h.da]?DAS[h.da][0]:h.da)+'</span>'
+      +'<button class="btn-ghost btn-small" data-del="'+i+'">Remover</button></div><code>'+esc(codeLine(h.da,h.stories))+'</code></li>';
+  }).join("");
+}
+
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true,2400); }
+
+function parseCode(str){
+  const parts = str.split("|").map(s=>s.trim()).filter(Boolean);
+  if(parts.length<5) return null;
+  const da = parts[0].toUpperCase();
+  if(!DAS[da]) return null;
+  const stories=[];
+  for(let i=1;i<=4;i++){
+    const m = parts[i].toUpperCase().match(/S\d\s+(A\d+)-(B\d+)-(C\d+)-(D\d+)-(E\d+)-(F\d+)(?:-(G\d+))?/);
+    if(!m) return null;
+    const c={A:m[1],B:m[2],C:m[3],D:m[4],E:m[5],F:m[6]};
+    if(m[7]) c.G=m[7];
+    if(!KEYS.every(k=>!c[k] ? k==="G" : MODS[k].o[c[k]])) return null;
+    stories.push(c);
+  }
+  return {da,stories};
+}
+
+/* ---------- eventos ---------- */
+const CMDS = [
+  ["Aprovado. Gerar story 1.","Aprova a tabela e gera o primeiro story"],
+  ["Gerar story 2.","Gera o próximo story"],
+  ["Refazer story 2","Versão nova do story, com os mesmos textos e fotos"],
+  ["Refazer story 2: deixe o título maior e a pessoa mais à direita","Mantém tudo e muda só o ajuste pedido"]
+];
+document.getElementById("cmdList").innerHTML = CMDS.map((c,i)=>'<li><div><code>'+esc(c[0])+'</code><small>'+esc(c[1])+'</small></div><button class="btn-ghost btn-small" data-cmd="'+i+'">Copiar</button></li>').join("");
+document.getElementById("cmdList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-cmd]"); if(!b) return;
+  const txt=CMDS[+b.dataset.cmd][0];
+  const ok=()=>{ b.textContent="Copiado"; setTimeout(()=>b.textContent="Copiar",1400); };
+  try{ navigator.clipboard.writeText(txt).then(ok,()=>toast("Não foi possível copiar. Selecione o texto e use Ctrl+C")); }catch(err){ toast("Não foi possível copiar. Selecione o texto e use Ctrl+C"); }
+});
+buildCards();
+const sel=document.getElementById("daSel");
+const optDA = k => '<option value="'+k+'">'+k+' · '+DAS[k][0]+'</option>';
+sel.innerHTML='<optgroup label="Sorteio"><option value="auto">Surpresa (qualquer direção)</option><option value="auto-foto">Surpresa só com foto inteira</option><option value="auto-graf">Surpresa só gráficas</option></optgroup>'
+  +'<optgroup label="Foto inteira em destaque">'+Object.keys(DAS).filter(isPhotoDA).map(optDA).join("")+'</optgroup>'
+  +'<optgroup label="Gráficas (foto + elementos)">'+Object.keys(DAS).filter(d=>!isPhotoDA(d)).map(optDA).join("")+'</optgroup>';
+document.querySelectorAll("[data-pm]").forEach(b=>b.addEventListener("click",()=>{
+  content.promptModo = b.dataset.pm; persist(); renderOut();
+}));
+document.querySelectorAll("[data-fm]").forEach(b=>b.addEventListener("click",()=>{
+  content.fotoModo = b.dataset.fm; persist(); applyFotoModo(); renderOut();
+}));
+document.getElementById("logoMode").addEventListener("change",e=>{ content.logoMode=e.target.value; persist(); renderVisual(); renderOut(); });
+document.getElementById("btnSort").addEventListener("click",sortCampaign);
+document.getElementById("tema").addEventListener("input",e=>{ content.tema=e.target.value; persist(); renderOut(); });
+document.getElementById("stories").addEventListener("click",e=>{
+  const b=e.target.closest("[data-reroll]"); if(b && !b.disabled) reroll(+b.dataset.reroll);
+  const l=e.target.closest("[data-lock]"); if(l) toggleLock(+l.dataset.lock);
+});
+document.getElementById("stories").addEventListener("input",e=>{
+  const f=e.target.dataset.f; if(!f) return;
+  if(f==="cta") content.cta=e.target.value;
+  else {
+    const i=+e.target.dataset.i;
+    if(f==="soIA"){ content.s[i].soIA = e.target.checked; persist(); applyFotoModo(); renderOut(); return; }
+    if(f==="icones"){ content.s[i].icones = e.target.checked; document.querySelector('[data-itw="'+i+'"]').hidden = !e.target.checked; persist(); renderVisual(); renderOut(); return; }
+    content.s[i][f]=e.target.value;
+    if(f==="texto") updateCount(i);
+    if(f==="fotos"||f==="juntar"){ updateJunta(i); document.querySelector('[data-wire="'+i+'"]').innerHTML = wire(state.stories[i],i); }
+  }
+  persist(); renderOut();
+});
+document.getElementById("hist").addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(b){ history.splice(+b.dataset.del,1); persist(); renderHist(); toast("Campanha removida do histórico"); } });
+document.getElementById("btnCopy").addEventListener("click",()=>{
+  const ta=document.getElementById("out"), b=document.getElementById("btnCopy");
+  const done=()=>{ b.textContent="Copiado"; setTimeout(()=>b.textContent="Copiar prompt",1600); };
+  const fallback=()=>{ ta.focus(); ta.select(); toast("Texto selecionado. Use Ctrl+C para copiar"); };
+  try{ navigator.clipboard.writeText(ta.value).then(done,fallback); }catch(e){ fallback(); }
+});
+document.getElementById("btnSave").addEventListener("click",()=>{
+  history.unshift({da:state.da, stories:state.stories.map(c=>({...c})), date:Date.now()});
+  state.saved=true; persist(); renderVisual(); toast("Campanha salva no histórico");
+});
+const btnClear=document.getElementById("btnClear");
+btnClear.addEventListener("click",()=>{
+  if(!btnClear.dataset.armed){
+    btnClear.dataset.armed="1"; btnClear.textContent="Confirmar: apagar textos"; btnClear.classList.add("danger");
+    clearTimeout(btnClear.t); btnClear.t=setTimeout(()=>{ delete btnClear.dataset.armed; btnClear.textContent="Limpar textos"; btnClear.classList.remove("danger"); },4000);
+    return;
+  }
+  delete btnClear.dataset.armed; btnClear.textContent="Limpar textos"; btnClear.classList.remove("danger");
+  content = {...VAZIO(), logoMode: content.logoMode, fotoModo: content.fotoModo, promptModo: content.promptModo, roteiro: content.roteiro}; persist(); fillFields(); renderOut(); toast("Textos apagados");
+});
+document.getElementById("btnImp").addEventListener("click",()=>{
+  const inp=document.getElementById("imp"), err=document.getElementById("impErr");
+  const p=parseCode(inp.value);
+  if(!p){ err.hidden=false; err.textContent='Código não reconhecido. Use o formato: DA1 | S1 A1-B3-C2-D3-E1-F1 | S2 ... | S3 ... | S4 ...'; return; }
+  err.hidden=true; history.unshift({...p, date:null}); inp.value=""; persist(); renderHist(); toast("Código adicionado ao histórico");
+});
+
+/* ---------- roteiro: encaixe automático ---------- */
+const LBL = {
+  titulo:/^(t[ií]tulo|headline|chamada principal|manchete)\s*[:\-–—]\s*/i,
+  texto:/^(texto( de apoio)?|subt[ií]tulo|apoio|legenda|descri[cç][aã]o|copy|corpo)\s*[:\-–—]\s*/i,
+  cta:/^(cta|bot[aã]o|chamada para a[cç][aã]o)\s*[:\-–—]\s*/i,
+  destaque:/^(destaque( amertha)?|amertha|palavra destaque)\s*[:\-–—]\s*/i,
+  itens:/^(itens?( com [ií]cone)?|t[oó]picos|lista|benef[ií]cios)\s*[:\-–—]\s*/i,
+  tema:/^(tema( geral)?|assunto|campanha)\s*[:\-–—]\s*/i
+};
+const HEAD = /^\s*(?:story|stories|st[oó]ry|p[aá]gina|tela|slide|card|parte)\s*0?([1-9])\b[^\n]*?(?:[:\-–—]\s*|$)/i;
+function parseRoteiro(raw){
+  const out = {tema:"", cta:"", s:[0,1,2,3].map(()=>({titulo:"",texto:"",destaque:"",itens:[]}))};
+  const lines = raw.replace(/\r/g,"").split("\n");
+  let cur = -1, achouCabecalho = false, modo = null;
+  const temCabecalho = lines.some(l=>HEAD.test(l));
+  const add = (i, campo, v) => { v=v.trim(); if(!v) return; const s=out.s[i];
+    if(campo==="itens") s.itens.push(v); else s[campo] = s[campo] ? s[campo]+" "+v : v; };
+  const tratar = (txt) => {
+    let t = txt.trim(); if(!t) { modo=null; return; }
+    if(/^[^:]{1,30}:\s*$/.test(t)) return;                 /* rótulo solto, como "Conteúdo:" */
+    if(temCabecalho && cur<0 && !LBL.tema.test(t) && !LBL.cta.test(t)) return;   /* introdução antes do Story 1 */
+    for(const [campo,re] of Object.entries(LBL)){
+      if(re.test(t)){
+        const v = t.replace(re,"");
+        if(campo==="tema"){ out.tema = v.trim(); modo=null; return; }
+        if(campo==="cta"){ out.cta = v.trim(); modo=null; return; }
+        if(cur<0) cur=0;
+        modo = campo;
+        if(campo==="itens"){ v.split(/[;,]/).forEach(x=>add(cur,"itens",x)); return; }
+        add(cur,campo,v); return;
+      }
+    }
+    if(cur<0) cur=0;
+    if(/^\s*[-•*✓✔▪►]\s+/.test(t)){ add(cur,"itens",t.replace(/^\s*[-•*✓✔▪►]\s+/,"")); return; }
+    if(modo==="itens"){ add(cur,"itens",t); return; }
+    if(modo && modo!=="titulo"){ add(cur,modo,t); return; }
+    if(!out.s[cur].titulo) { add(cur,"titulo",t); modo=null; } else add(cur,"texto",t);
+  };
+  lines.forEach(l=>{
+    const m = l.match(HEAD);
+    if(m){ achouCabecalho = true; cur = Math.min(3, Number(m[1])-1); modo=null;
+      const resto = l.slice(m[0].length).trim();
+      /* "Story 1 — Introdução / Gancho" é só o nome da etapa; um rótulo na mesma linha vira conteúdo */
+      if(resto && Object.values(LBL).some(re=>re.test(resto))) tratar(resto);
+      return; }
+    if(!achouCabecalho && !LBL.tema.test(l.trim()) && !LBL.cta.test(l.trim()) && cur<0 && !l.trim()) return;
+    tratar(l);
+  });
+  if(!achouCabecalho){
+    /* sem "Story 1, 2..." : cada bloco separado por linha em branco vira um story */
+    const res = {tema:out.tema, cta:out.cta, s:[0,1,2,3].map(()=>({titulo:"",texto:"",destaque:"",itens:[]}))};
+    const blocos = raw.replace(/\r/g,"").split(/\n\s*\n/).map(b=>b.split("\n").filter(l=>l.trim() && !LBL.tema.test(l.trim()) && !LBL.cta.test(l.trim()))).filter(b=>b.length);
+    blocos.slice(0,4).forEach((b,i)=>{
+      b.forEach(l=>{ const t=l.trim();
+        if(/^\s*[-•*✓✔▪►]\s+/.test(t)) res.s[i].itens.push(t.replace(/^\s*[-•*✓✔▪►]\s+/,""));
+        else if(!res.s[i].titulo) res.s[i].titulo = t.replace(LBL.titulo,"");
+        else res.s[i].texto = (res.s[i].texto+" "+t.replace(LBL.texto,"")).trim(); });
+    });
+    return res;
+  }
+  return out;
+}
+
+let fitUndo = null, fitCtl = null;
+function aplicarEncaixe(r, ajustes){
+  fitUndo = JSON.parse(JSON.stringify(content));
+  if(r.tema) content.tema = r.tema;
+  if(r.cta) content.cta = r.cta.toUpperCase();
+  r.s.forEach((p,i)=>{
+    const s = content.s[i];
+    s.titulo = (p.titulo||"").toUpperCase().trim();
+    s.texto = (p.texto||"").trim();
+    s.destaque = (p.destaque||"").trim();
+    s.itens = (Array.isArray(p.itens)?p.itens:[]).map(x=>String(x).trim()).filter(Boolean).join("\n");
+  });
+  persist(); fillFields(); renderOut();
+  document.getElementById("btnUndoFit").hidden = false;
+  const log = document.getElementById("fitLog");
+  const avisos = [...(ajustes||[])];
+  content.s.forEach((s,i)=>{ if(!s.titulo) avisos.push("Story "+(i+1)+" ficou sem título. Confira o roteiro."); if(words(s.texto)>TEXT_LIMIT) avisos.push("O texto do story "+(i+1)+" passou de "+TEXT_LIMIT+" palavras."); });
+  log.innerHTML = avisos.map(a=>"<li>"+esc(String(a))+"</li>").join("");
+  log.hidden = !avisos.length;
+  document.getElementById("stories").scrollIntoView({behavior: (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth", block:"start"});
+}
+
+function promptEncaixe(rot){
+  const lista = [0,1,2,3].filter(i=>icOn(i) && LISTA_ICONES.includes(state.stories[i]?.G)).map(i=>i+1);
+  const semIc = [0,1,2,3].filter(i=>!icOn(i)).map(i=>i+1);
+  return "Você vai encaixar o roteiro de uma campanha de 4 stories de Instagram da KAP Edificações (construtora de casas) nos campos de cada story.\n\n"
+   + "PAPÉIS: story 1 = gancho; story 2 = desenvolvimento; story 3 = aprofundamento; story 4 = fechamento com chamada para ação.\n"
+   + "REGRAS:\n"
+   + "- Use as palavras do roteiro sempre que possível. Só ajuste quando precisar, sem mudar o sentido.\n"
+   + "- Se o roteiro tiver mais ou menos de 4 partes, distribua ou condense mantendo a ordem.\n"
+   + "- titulo: em CAIXA ALTA, no máximo cerca de 8 palavras.\n"
+   + "- texto: texto de apoio com no máximo 25 palavras; encurte se passar.\n"
+   + "- destaque: 1 ou 2 palavras que estejam no título, as mais emocionais.\n"
+   + "- itens: "+(lista.length ? "só nos stories "+lista.join(", ")+" (usam lista de ícones): 2 a 4 itens curtos, de 1 a 4 palavras, tirados do roteiro (se o roteiro tiver uma lista, use-a). Nos outros stories, lista vazia." : "deixe todas as listas vazias.")+(semIc.length?" Stories "+semIc.join(", ")+" não têm ícones.":"")+"\n"
+   + "- cta: frase curta em CAIXA ALTA para o botão do story 4; se o roteiro tiver CTA, use-o.\n"
+   + "- tema: uma linha resumindo o tema da campanha.\n"
+   + "- Corrija ortografia e acentos (português do Brasil).\n"
+   + "- NÃO invente promessas, números, prazos, condições, preços ou benefícios que não estejam no roteiro.\n"
+   + "- ajustes: lista curta, em português, do que você mudou em relação ao roteiro (vazia se nada mudou).\n\n"
+   + 'Responda só com JSON neste formato: {"tema":"","stories":[{"titulo":"","destaque":"","texto":"","itens":[]},{"titulo":"","destaque":"","texto":"","itens":[]},{"titulo":"","destaque":"","texto":"","itens":[]},{"titulo":"","destaque":"","texto":"","itens":[]}],"cta":"","ajustes":[]}\n\n'
+   + "ROTEIRO:\n<<<\n"+rot.slice(0,12000)+"\n>>>";
+}
+
+(function(){
+  const ta = document.getElementById("roteiro"), st = document.getElementById("fitStatus");
+  const bIA = document.getElementById("btnFitIA"), bFit = document.getElementById("btnFit"), bStop = document.getElementById("btnStopFit"), bUndo = document.getElementById("btnUndoFit");
+  ta.addEventListener("input",()=>{ content.roteiro = ta.value; persist(); });
+  bFit.addEventListener("click",()=>{
+    if(!ta.value.trim()){ st.textContent = "Cole o roteiro antes de encaixar."; return; }
+    const r = parseRoteiro(ta.value);
+    aplicarEncaixe(r, []);
+    st.textContent = "Roteiro encaixado sem alterar o texto (títulos em caixa alta). Revise cada story abaixo.";
+  });
+  bUndo.addEventListener("click",()=>{
+    if(!fitUndo) return;
+    content = fitUndo; fitUndo = null; persist(); fillFields(); renderOut();
+    bUndo.hidden = true; document.getElementById("fitLog").hidden = true;
+    st.textContent = "Encaixe desfeito. Os textos voltaram como estavam.";
+  });
+  bStop.addEventListener("click",()=>{ fitCtl?.abort(); });
+  const COPY = {
+    rate_limited:"Muitos pedidos seguidos. Espere um pouco e tente de novo, ou use \"Encaixar sem mudar o texto\".",
+    invalid_json:"A resposta veio num formato inesperado. Tente de novo.",
+    refused:"Não foi possível ajustar este roteiro. Use \"Encaixar sem mudar o texto\".",
+    session_expired:"Sua sessão expirou. Entre de novo no Claude e tente outra vez.",
+    prompt_too_large:"O roteiro está grande demais. Cole só o texto dos 4 stories.",
+    upstream_error:"A conexão falhou. Tente de novo."
+  };
+  (window.claude && claude.use ? claude.use("sample") : Promise.resolve(null)).then(sample=>{
+    if(!sample) return;
+    bIA.hidden = false;
+    bIA.addEventListener("click", async ()=>{
+      if(!ta.value.trim()){ st.textContent = "Cole o roteiro antes de encaixar."; return; }
+      fitCtl = new AbortController();
+      bIA.disabled = bFit.disabled = true; bStop.hidden = false;
+      st.textContent = "Encaixando e ajustando o roteiro... pode levar até um minuto.";
+      try{
+        const r = await sample.json(promptEncaixe(ta.value), {signal: fitCtl.signal});
+        if(!r || !Array.isArray(r.stories)) throw {code:"invalid_json"};
+        const norm = {tema:String(r.tema||""), cta:String(r.cta||""), s:[0,1,2,3].map(i=>{ const p=r.stories[i]||{}; return {titulo:String(p.titulo||""), texto:String(p.texto||""), destaque:String(p.destaque||""), itens:Array.isArray(p.itens)?p.itens:[]}; })};
+        aplicarEncaixe(norm, Array.isArray(r.ajustes)?r.ajustes.map(String):[]);
+        st.textContent = "Roteiro encaixado e ajustado. O que mudou está listado abaixo. Revise antes de copiar o prompt.";
+      }catch(e){
+        if(e && e.code==="cancelled") st.textContent = "Encaixe interrompido. Nada foi alterado.";
+        else if(e && ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){ bIA.hidden = true; st.textContent = "O ajuste com IA não está disponível aqui. Use \"Encaixar sem mudar o texto\"."; }
+        else st.textContent = COPY[e && e.code] || COPY.upstream_error;
+      }finally{
+        bIA.disabled = bFit.disabled = false; bStop.hidden = true; fitCtl = null;
+      }
+    });
+  });
+})();
+
+/* ---------- abas Gerador / Manual ---------- */
+function showView(v){
+  const man = v==="manual";
+  document.getElementById("viewGerador").hidden = man;
+  document.getElementById("viewManual").hidden = !man;
+  document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===(man?"manual":"gerador"))));
+}
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
+  const v=b.dataset.view; showView(v);
+  try{ history.replaceState(null,"",v==="manual"?"#manual":"#gerador"); }catch(e){ location.hash = v; }
+}));
+window.addEventListener("hashchange",()=>showView(location.hash==="#manual"?"manual":"gerador"));
+document.querySelector(".man-index").addEventListener("click",e=>{
+  const b=e.target.closest("[data-goto]"); if(!b) return;
+  const el=document.getElementById(b.dataset.goto);
+  if(el) el.scrollIntoView({behavior:(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)?"auto":"smooth",block:"start"});
+});
+showView(location.hash==="#manual"?"manual":"gerador");
+
+load();
+document.getElementById("roteiro").value = content.roteiro || "";
+fillFields();
+if(!state.stories.length || !DAS[state.da]) sortCampaign(); else { renderVisual(); renderOut(); }
+</script>
+
+</body></html>
